@@ -4,6 +4,7 @@ import { requireAuth } from '@/lib/rbac';
 import { getSupervisorDashboard } from '@/lib/services/dashboard/supervisor-dashboard';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { PageHeader } from '@/components/shared/page-header';
+import { RecentActivityFeed } from '@/components/activity/recent-activity-feed';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -299,6 +300,12 @@ export default async function SupervisorDashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Recent activity across supervised teams */}
+      <RecentActivityFeed
+        limit={8}
+        title="Recent Supervised Activity"
+      />
 
       {/* Section E: Action Center */}
       <section>

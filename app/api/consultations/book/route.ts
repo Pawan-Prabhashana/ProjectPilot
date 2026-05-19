@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { createEvent } from '@/lib/events/create-event';
+import { EVENT_TYPES } from '@/lib/events/types';
 
 const bookSchema = z.object({
   availabilityId: z.string().min(1),
@@ -40,7 +42,7 @@ export async function POST(req: Request) {
   const { availabilityId, agenda, purpose, blockerContext, topicsForSupervisor } = parsed.data;
 
   const membership = await prisma.teamMember.findFirst({
-    where: { userId: user.id },
+    where:  { userId: user.id },
     select: { teamId: true },
   });
   if (!membership) {
@@ -69,31 +71,41 @@ export async function POST(req: Request) {
 
   const booking = await prisma.consultationBooking.create({
     data: {
-      teamId: membership.teamId,
+      teamId:             membership.teamId,
       availabilityId,
-      slotStart: slot.startTime,
+      slotStart:          slot.startTime,
       slotEnd,
-      status: 'PENDING',
+      status:             'PENDING',
       agenda,
-      purpose: purpose ?? null,
-      blockerContext: blockerContext ?? null,
+      purpose:            purpose ?? null,
+      blockerContext:     blockerContext ?? null,
       topicsForSupervisor: topicsForSupervisor ?? null,
     },
   });
 
-  // Notify the supervisor
-  if (slot.supervisor?.userId) {
-    const team = await prisma.team.findUnique({ where: { id: membership.teamId }, select: { name: true } });
-    await prisma.notification.create({
-      data: {
-        userId: slot.supervisor.userId,
-        type: 'CONSULTATION_BOOKED',
-        title: 'New consultation request',
-        body: `${team?.name ?? 'A team'} has requested a consultation. Please confirm or decline.`,
-        link: '/dashboard/consultations',
-      },
-    });
-  }
+  // Get team info for event messaging
+  const team = await prisma.team.findUnique({
+    where:   { id: membership.teamId },
+    select:  { name: true, project: { select: { id: true } } },
+  });
+
+  // Fire event: consultation requested
+  // Notifies the supervisor (and team leader so they know it's been requested)
+  await createEvent({
+    type:       EVENT_TYPES.CONSULTATION_REQUESTED,
+    title:      'Consultation requested',
+    message:    `${team?.name ?? 'A team'} has requested a consultation. Please confirm or decline.`,
+    actorId:    user.id,
+    teamId:     membership.teamId,
+    projectId:  team?.project?.id ?? null,
+    entityType: 'ConsultationBooking',
+    entityId:   booking.id,
+    visibility: 'SUPERVISOR',
+    notify: {
+      includeSupervisor: true,
+      href: '/dashboard/consultations',
+    },
+  }).catch((err) => console.error('[consultations/book] event error:', err));
 
   return NextResponse.json({ booking: { id: booking.id, status: booking.status } }, { status: 201 });
 }

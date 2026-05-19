@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { generateConsultationBrief } from '@/lib/services/supervisor-bridge';
+import { createEvent } from '@/lib/events/create-event';
+import { EVENT_TYPES } from '@/lib/events/types';
 
 /**
  * POST /api/consultations/[id]/confirm
@@ -27,6 +29,7 @@ export async function POST(
         include: {
           // supervisorId references SupervisorProfile.id; include userId for User.id comparison
           supervisor: { select: { userId: true } },
+          project: { select: { id: true } },
         },
       },
     },
@@ -46,7 +49,7 @@ export async function POST(
 
   const updated = await prisma.consultationBooking.update({
     where: { id: params.id },
-    data: { status: 'CONFIRMED' },
+    data:  { status: 'CONFIRMED' },
   });
 
   // Auto-generate brief if none exists
@@ -61,27 +64,28 @@ export async function POST(
     }
   }
 
-  // Notify team members
-  const members = await prisma.teamMember.findMany({
-    where: { teamId: booking.teamId },
-    select: { userId: true },
+  // Format date for notification message
+  const dateStr = booking.slotStart.toLocaleDateString('en-GB', {
+    weekday: 'short', day: 'numeric', month: 'short',
+    hour: '2-digit', minute: '2-digit',
   });
-  await prisma.notification.createMany({
-    data: members.map((m) => ({
-      userId: m.userId,
-      type: 'CONSULTATION_BOOKED' as const,
-      title: 'Consultation confirmed',
-      body: `Your consultation on ${booking.slotStart.toLocaleDateString('en-GB', {
-        weekday: 'short',
-        day: 'numeric',
-        month: 'short',
-        hour: '2-digit',
-        minute: '2-digit',
-      })} has been confirmed.`,
-      link: '/dashboard/consultations',
-    })),
-    skipDuplicates: true,
-  });
+
+  // Fire event: consultation confirmed — notify all team members
+  await createEvent({
+    type:       EVENT_TYPES.CONSULTATION_CONFIRMED,
+    title:      'Consultation confirmed',
+    message:    `Your consultation on ${dateStr} has been confirmed.`,
+    actorId:    user.id,
+    teamId:     booking.teamId,
+    projectId:  booking.team.project?.id ?? null,
+    entityType: 'ConsultationBooking',
+    entityId:   booking.id,
+    visibility: 'TEAM',
+    notify: {
+      includeTeamMembers: true,
+      href: '/dashboard/consultations',
+    },
+  }).catch((err) => console.error('[consultations/confirm] event error:', err));
 
   return NextResponse.json({ booking: { id: updated.id, status: updated.status } });
 }

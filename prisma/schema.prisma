@@ -131,19 +131,8 @@ enum BookingStatus {
   NO_SHOW
 }
 
-// --- Notifications ---
-
-enum NotificationType {
-  TASK_ASSIGNED
-  TASK_OVERDUE
-  MILESTONE_DUE
-  CONSULTATION_BOOKED
-  CONSULTATION_REMINDER
-  OVERLOAD_DETECTED
-  INSIGHT_READY
-  TEAM_UPDATE
-  SYSTEM
-}
+// Notification types are now free-form strings (see lib/events/types.ts for constants).
+// This allows new event types to be added without schema migrations.
 
 // --- Cognitive Support ---
 
@@ -484,6 +473,7 @@ model Team {
   workloadSnapshots    WorkloadSnapshot[]
   frictionEvents       SocialFrictionEvent[]
   activityLogs         ActivityLog[]
+  notifications        Notification[]
 
   @@index([supervisorId])
   @@index([healthStatus])
@@ -529,6 +519,8 @@ model Project {
   openQuestions     OpenQuestion[]
   assumptionRecords AssumptionRecord[]
   feedbackMemories  FeedbackMemory[]
+  activityLogs      ActivityLog[]
+  notifications     Notification[]
 
   @@index([status])
 }
@@ -980,38 +972,57 @@ model AIInsight {
 // =============================================================================
 
 model Notification {
-  id        String           @id @default(cuid())
-  userId    String
-  type      NotificationType
-  title     String
-  body      String?          @db.Text
-  read      Boolean          @default(false)
-  link      String?
-  createdAt DateTime         @default(now())
+  id            String    @id @default(cuid())
+  userId        String
+  teamId        String?
+  projectId     String?
+  activityLogId String?
+  type          String
+  title         String
+  body          String?   @db.Text
+  read          Boolean   @default(false)
+  readAt        DateTime?
+  link          String?
+  createdAt     DateTime  @default(now())
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  team        Team?        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project     Project?     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  activityLog ActivityLog? @relation(fields: [activityLogId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  @@index([teamId])
+  @@index([projectId])
   @@index([read])
   @@index([createdAt])
 }
 
-// General-purpose audit/activity trail. Used for admin visibility and
-// future reporting dashboards. Keep writes cheap (no updatedAt).
+// General-purpose audit/activity trail and event log.
+// Extended in this version to serve as the platform event system.
+// Keep writes cheap (no updatedAt).
 model ActivityLog {
-  id        String   @id @default(cuid())
-  teamId    String?
-  userId    String?
-  action    String   // e.g. "task.created", "booking.confirmed"
-  entity    String?  // model name: "Task" | "ConsultationBooking" etc.
-  entityId  String?
-  metadata  Json?
-  createdAt DateTime @default(now())
+  id         String   @id @default(cuid())
+  teamId     String?
+  projectId  String?
+  userId     String?  // actor (the user who performed the action)
+  action     String   // e.g. "task.created", "booking.confirmed"
+  entity     String?  // model name: "Task" | "ConsultationBooking" etc.
+  entityId   String?
+  title      String   @default("")
+  message    String?  @db.Text
+  visibility String   @default("TEAM")  // PRIVATE | TEAM | SUPERVISOR | COORDINATOR | SYSTEM
+  metadata   Json?
+  createdAt  DateTime @default(now())
 
-  team Team? @relation(fields: [teamId], references: [id], onDelete: SetNull)
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  team          Team?          @relation(fields: [teamId], references: [id], onDelete: SetNull)
+  project       Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  user          User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
+  notifications Notification[]
 
   @@index([teamId])
+  @@index([projectId])
   @@index([userId])
+  @@index([action])
+  @@index([visibility])
   @@index([createdAt])
 }

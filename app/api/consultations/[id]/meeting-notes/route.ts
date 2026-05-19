@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { parseSupervisorFeedback } from '@/lib/services/supervisor-bridge';
+import { createEvent } from '@/lib/events/create-event';
+import { EVENT_TYPES } from '@/lib/events/types';
 
 const schema = z.object({
   content: z.string().min(50, 'Notes must be at least 50 characters').max(10000),
@@ -29,6 +31,7 @@ export async function POST(
       team: {
         include: {
           supervisor: { select: { userId: true } },
+          project:    { select: { id: true } },
         },
       },
       meetingNote: { select: { id: true } },
@@ -43,7 +46,9 @@ export async function POST(
   }
 
   if (booking.meetingNote) {
-    return NextResponse.json({ error: 'Meeting notes already exist for this booking. Use PATCH to update.' }, { status: 409 });
+    return NextResponse.json({
+      error: 'Meeting notes already exist for this booking. Use PATCH to update.',
+    }, { status: 409 });
   }
 
   const body = await req.json().catch(() => null);
@@ -57,9 +62,9 @@ export async function POST(
 
   const note = await prisma.meetingNote.create({
     data: {
-      bookingId: params.id,
-      authorId: user.id,
-      content: parsed.data.content,
+      bookingId:   params.id,
+      authorId:    user.id,
+      content:     parsed.data.content,
       privateNote: parsed.data.privateNote ?? null,
     },
   });
@@ -67,34 +72,37 @@ export async function POST(
   // Mark booking as COMPLETED
   await prisma.consultationBooking.update({
     where: { id: params.id },
-    data: { status: 'COMPLETED' },
+    data:  { status: 'COMPLETED' },
   });
 
-  // Auto-trigger bridge parsing — best effort (doesn't fail the request if it fails)
+  // Auto-trigger bridge parsing — best effort
   try {
     await parseSupervisorFeedback(params.id, parsed.data.content);
   } catch {
     // Bridge parsing failure doesn't block note saving
   }
 
-  // Notify team members that notes are available
-  const members = await prisma.teamMember.findMany({
-    where: { teamId: booking.teamId },
-    select: { userId: true },
-  });
+  // Fire event: meeting notes added — notify team members
+  await createEvent({
+    type:       EVENT_TYPES.MEETING_NOTES_ADDED,
+    title:      'Meeting notes available',
+    message:    'Your supervisor has added notes from your consultation. Review your translated action items.',
+    actorId:    user.id,
+    teamId:     booking.teamId,
+    projectId:  booking.team.project?.id ?? null,
+    entityType: 'MeetingNote',
+    entityId:   note.id,
+    visibility: 'TEAM',
+    notify: {
+      includeTeamMembers: true,
+      href: `/dashboard/consultations/${params.id}`,
+    },
+  }).catch((err) => console.error('[meeting-notes] event error:', err));
 
-  await prisma.notification.createMany({
-    data: members.map((m) => ({
-      userId: m.userId,
-      type: 'CONSULTATION_BOOKED' as const,
-      title: 'Meeting notes available',
-      body: 'Your supervisor has added notes from your consultation. Review your translated action items.',
-      link: `/dashboard/consultations/${params.id}`,
-    })),
-    skipDuplicates: true,
-  });
-
-  return NextResponse.json({ note: { id: note.id }, message: 'Notes saved and bridge parsing triggered.' }, { status: 201 });
+  return NextResponse.json({
+    note:    { id: note.id },
+    message: 'Notes saved and bridge parsing triggered.',
+  }, { status: 201 });
 }
 
 /**
@@ -112,7 +120,7 @@ export async function PATCH(
   }
 
   const note = await prisma.meetingNote.findUnique({
-    where: { bookingId: params.id },
+    where:   { bookingId: params.id },
     include: { booking: { include: { team: { include: { supervisor: { select: { userId: true } } } } } } },
   });
 
@@ -129,7 +137,7 @@ export async function PATCH(
 
   const updated = await prisma.meetingNote.update({
     where: { bookingId: params.id },
-    data: { content: parsed.data.content, privateNote: parsed.data.privateNote ?? null },
+    data:  { content: parsed.data.content, privateNote: parsed.data.privateNote ?? null },
   });
 
   // Re-trigger bridge parsing with updated content
@@ -138,6 +146,19 @@ export async function PATCH(
   } catch {
     // Best effort
   }
+
+  // Fire event: meeting notes updated
+  await createEvent({
+    type:       EVENT_TYPES.MEETING_NOTES_UPDATED,
+    title:      'Meeting notes updated',
+    message:    'Your supervisor has updated the consultation notes.',
+    actorId:    user.id,
+    teamId:     note.booking.teamId,
+    entityType: 'MeetingNote',
+    entityId:   updated.id,
+    visibility: 'TEAM',
+    notify:     false, // Don't spam for updates; major change is the initial add
+  }).catch((err) => console.error('[meeting-notes PATCH] event error:', err));
 
   return NextResponse.json({ note: { id: updated.id } });
 }

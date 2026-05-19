@@ -6,6 +6,7 @@ import { hasAnyLeaderCapability } from '@/lib/rbac/team-permissions';
 import { getLeaderDashboard } from '@/lib/services/dashboard/leader-dashboard';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { PageHeader } from '@/components/shared/page-header';
+import { RecentActivityFeed } from '@/components/activity/recent-activity-feed';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -471,6 +472,15 @@ export default async function LeaderDashboardPage({
           Use the sidebar to switch between your personal dashboard and these leader tools.
         </p>
       </div>
+
+      {/* Live team activity */}
+      {data && (
+        <RecentActivityFeed
+          teamId={data.teamId}
+          limit={8}
+          title="Live Team Activity"
+        />
+      )}
     </div>
   );
 }

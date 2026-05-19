@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { checkTaskAmbiguity } from '@/lib/services/task-intelligence';
+import { createEvent } from '@/lib/events/create-event';
+import { EVENT_TYPES } from '@/lib/events/types';
 
 const createTaskSchema = z.object({
   projectId: z.string().min(1),
@@ -80,18 +82,46 @@ export async function POST(req: Request) {
     },
   });
 
-  // Background: check for ambiguity and log activity
+  // Fire events and check ambiguity in background — never fail the primary action
   await Promise.allSettled([
     checkTaskAmbiguity(task.id),
-    prisma.activityLog.create({
-      data: {
-        userId: user.id,
-        action: 'task.created',
-        entity: 'Task',
-        entityId: task.id,
-        metadata: { taskTitle: title, projectId },
+
+    // Event: task created — notify team leaders/supervisors
+    createEvent({
+      type: EVENT_TYPES.TASK_CREATED,
+      title: `Task created: ${title}`,
+      message: `${user.name ?? user.email} created a new task.`,
+      actorId: user.id,
+      teamId: project.teamId,
+      projectId,
+      entityType: 'Task',
+      entityId: task.id,
+      visibility: 'TEAM',
+      notify: {
+        includeSupervisor: true,
+        includeTeamMembers: false, // only leaders will be notified via assignee path
+        href: `/dashboard/tasks/${task.id}?teamId=${project.teamId}`,
       },
     }),
+
+    // Event: task assigned — notify only the assignee (if different from actor)
+    ...(assigneeId && assigneeId !== user.id
+      ? [createEvent({
+          type: EVENT_TYPES.TASK_ASSIGNED,
+          title: `Task assigned to you: ${title}`,
+          message: `${user.name ?? user.email} assigned you a task.`,
+          actorId: user.id,
+          teamId: project.teamId,
+          projectId,
+          entityType: 'Task',
+          entityId: task.id,
+          visibility: 'PRIVATE',
+          notify: {
+            targetUserIds: [assigneeId],
+            href: `/dashboard/tasks/${task.id}?teamId=${project.teamId}`,
+          },
+        })]
+      : []),
   ]);
 
   return NextResponse.json({ task }, { status: 201 });

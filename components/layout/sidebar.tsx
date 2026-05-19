@@ -21,6 +21,7 @@ import {
   Shield,
   Target,
   TrendingUp,
+  Bell,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -96,6 +97,13 @@ const navItems: NavItem[] = [
     description: 'Focus mode, low-energy mode, and communication tools',
   },
   {
+    href: '/dashboard/notifications',
+    label: 'Notifications',
+    icon: Bell,
+    roles: ['STUDENT'],
+    description: 'Your notification centre',
+  },
+  {
     href: '/dashboard/settings',
     label: 'Settings',
     icon: Settings,
@@ -151,6 +159,13 @@ const navItems: NavItem[] = [
     description: 'Team decisions, questions, and memory',
   },
   {
+    href: '/dashboard/notifications',
+    label: 'Notifications',
+    icon: Bell,
+    roles: ['SUPERVISOR'],
+    description: 'Your notification centre',
+  },
+  {
     href: '/dashboard/settings',
     label: 'Settings',
     icon: Settings,
@@ -186,6 +201,13 @@ const navItems: NavItem[] = [
     icon: Calendar,
     roles: ['COORDINATOR'],
     description: 'View all consultation bookings',
+  },
+  {
+    href: '/dashboard/notifications',
+    label: 'Notifications',
+    icon: Bell,
+    roles: ['COORDINATOR'],
+    description: 'Your notification centre',
   },
   {
     href: '/dashboard/settings',

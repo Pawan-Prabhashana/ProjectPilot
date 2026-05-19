@@ -3,6 +3,8 @@ import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import type { ContributionType } from '@prisma/client';
+import { createEvent } from '@/lib/events/create-event';
+import { EVENT_TYPES } from '@/lib/events/types';
 
 const schema = z.object({
   projectId: z.string().min(1),
@@ -33,7 +35,7 @@ export async function POST(req: Request) {
   // Verify access
   const project = await prisma.project.findUnique({
     where: { id: projectId },
-    include: { team: { include: { members: { select: { userId: true } } } } },
+    include: { team: { include: { members: { select: { userId: true, role: true } } } } },
   });
 
   if (!project) return NextResponse.json({ error: 'Project not found' }, { status: 404 });
@@ -46,10 +48,10 @@ export async function POST(req: Request) {
   const log = await prisma.contributionLog.create({
     data: {
       projectId,
-      userId: user.id,
+      userId:           user.id,
       description,
       contributionType: contributionType as ContributionType,
-      hours: hours ?? null,
+      hours:            hours ?? null,
     },
   });
 
@@ -63,18 +65,42 @@ export async function POST(req: Request) {
       },
     },
     update: {
-      count: { increment: 1 },
-      totalHours: { increment: hours ?? 0 },
+      count:       { increment: 1 },
+      totalHours:  { increment: hours ?? 0 },
       lastLoggedAt: new Date(),
     },
     create: {
       projectId,
-      userId: user.id,
+      userId:           user.id,
       contributionType: contributionType as ContributionType,
-      count: 1,
+      count:      1,
       totalHours: hours ?? 0,
     },
   });
+
+  // Notify team leaders about the logged contribution — keep the feed visible
+  const leaderIds = project.team.members
+    .filter((m) => m.role === 'LEADER' || m.role === 'CO_LEADER')
+    .map((m) => m.userId);
+
+  const typeLabel = contributionType.toLowerCase().replace(/_/g, ' ');
+  await createEvent({
+    type:       EVENT_TYPES.CONTRIBUTION_LOGGED,
+    title:      'Contribution logged',
+    message:    `${user.name ?? user.email} logged a contribution (${typeLabel}${hours ? `, ${hours}h` : ''}).`,
+    actorId:    user.id,
+    teamId:     project.teamId,
+    projectId,
+    entityType: 'ContributionLog',
+    entityId:   log.id,
+    visibility: 'TEAM',
+    notify: leaderIds.length > 0
+      ? {
+          targetUserIds: leaderIds,
+          href: `/dashboard/contributions?teamId=${project.teamId}`,
+        }
+      : false,
+  }).catch((err) => console.error('[contributions/log] event error:', err));
 
   return NextResponse.json({ log: { id: log.id, contributionType: log.contributionType } }, { status: 201 });
 }

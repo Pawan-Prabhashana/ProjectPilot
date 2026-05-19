@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { createEvent } from '@/lib/events/create-event';
+import { EVENT_TYPES } from '@/lib/events/types';
 
 const raiseSchema = z.object({
   projectId: z.string().min(1),
-  question: z.string().min(10, 'Question must be at least 10 characters').max(1000),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
+  question:  z.string().min(10, 'Question must be at least 10 characters').max(1000),
+  priority:  z.enum(['LOW', 'MEDIUM', 'HIGH', 'URGENT']).default('MEDIUM'),
 });
 
 const resolveSchema = z.object({
@@ -38,7 +40,7 @@ export async function POST(req: Request) {
     include: {
       team: {
         include: {
-          members: { select: { userId: true } },
+          members: { select: { userId: true, role: true } },
           // supervisorId references SupervisorProfile.id; include userId for notifications
           supervisor: { select: { id: true, userId: true } },
         },
@@ -62,19 +64,27 @@ export async function POST(req: Request) {
     include: { raisedByUser: { select: { name: true } } },
   });
 
-  // Notify supervisor if priority is HIGH or URGENT
-  // Use supervisor.userId (User.id), not supervisor.id (SupervisorProfile.id)
-  if ((priority === 'HIGH' || priority === 'URGENT') && project.team.supervisor) {
-    await prisma.notification.create({
-      data: {
-        userId: project.team.supervisor.userId,
-        type: 'TEAM_UPDATE',
-        title: `${priority === 'URGENT' ? 'Urgent' : 'High-priority'} question raised`,
-        body: `"${question.slice(0, 120)}${question.length > 120 ? '…' : ''}"`,
-        link: '/dashboard/project-brain',
-      },
-    });
-  }
+  // Notify team leaders and supervisor about new question
+  const leaderIds = project.team.members
+    .filter((m) => m.role === 'LEADER' || m.role === 'CO_LEADER')
+    .map((m) => m.userId);
+
+  await createEvent({
+    type:       EVENT_TYPES.PROJECT_BRAIN_QUESTION_CREATED,
+    title:      `Question raised: ${question.slice(0, 80)}${question.length > 80 ? '…' : ''}`,
+    message:    `${user.name ?? user.email} raised a ${priority.toLowerCase()} priority question.`,
+    actorId:    user.id,
+    teamId:     project.teamId,
+    projectId,
+    entityType: 'OpenQuestion',
+    entityId:   raised.id,
+    visibility: 'SUPERVISOR',
+    notify: {
+      targetUserIds:     leaderIds,
+      includeSupervisor: priority === 'HIGH' || priority === 'URGENT',
+      href: `/dashboard/project-brain?teamId=${project.teamId}`,
+    },
+  }).catch((err) => console.error('[questions POST] event error:', err));
 
   return NextResponse.json({ question: raised }, { status: 201 });
 }
@@ -119,8 +129,7 @@ export async function PATCH(req: Request) {
     return NextResponse.json({ error: 'Question is already resolved' }, { status: 400 });
   }
 
-  const isMember = question.project.team.members.some((m) => m.userId === user.id);
-  // Correct check: compare via SupervisorProfile.userId
+  const isMember   = question.project.team.members.some((m) => m.userId === user.id);
   const isSupervisor =
     user.role === 'SUPERVISOR' && question.project.team.supervisor?.userId === user.id;
 
@@ -130,8 +139,25 @@ export async function PATCH(req: Request) {
 
   const updated = await prisma.openQuestion.update({
     where: { id: questionId },
-    data: { resolvedAt: new Date(), resolution },
+    data:  { resolvedAt: new Date(), resolution },
   });
+
+  // Notify team members that a question was resolved
+  await createEvent({
+    type:       EVENT_TYPES.PROJECT_BRAIN_QUESTION_RESOLVED,
+    title:      'Question resolved',
+    message:    `${user.name ?? user.email} resolved a project question.`,
+    actorId:    user.id,
+    teamId:     question.project.teamId,
+    projectId:  question.projectId,
+    entityType: 'OpenQuestion',
+    entityId:   questionId,
+    visibility: 'TEAM',
+    notify: {
+      includeTeamMembers: true,
+      href: `/dashboard/project-brain?teamId=${question.project.teamId}`,
+    },
+  }).catch((err) => console.error('[questions PATCH] event error:', err));
 
   return NextResponse.json({ question: updated });
 }

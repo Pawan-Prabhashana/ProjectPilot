@@ -8,6 +8,7 @@ import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { RecentActivityFeed } from '@/components/activity/recent-activity-feed';
 import {
   Crown,
   ClipboardList,
@@ -418,6 +419,16 @@ export default async function MyWorkPage({
           Need a lower-pressure start? Use support tools to break the next task into smaller steps.
         </p>
       </section>
+
+      {/* Recent team activity */}
+      {workspace && (
+        <RecentActivityFeed
+          teamId={workspace.teamId}
+          limit={6}
+          compact
+          title="Recent Team Activity"
+        />
+      )}
     </div>
   );
 }

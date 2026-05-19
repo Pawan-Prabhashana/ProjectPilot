@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { createEvent } from '@/lib/events/create-event';
+import { EVENT_TYPES } from '@/lib/events/types';
 
 const schema = z.object({
   projectId: z.string().min(1),
-  title: z.string().min(5, 'Title must be at least 5 characters').max(300),
+  title:     z.string().min(5, 'Title must be at least 5 characters').max(300),
   rationale: z.string().min(10, 'Rationale must be at least 10 characters').max(2000),
 });
 
@@ -59,6 +61,24 @@ export async function POST(req: Request) {
     data: { projectId, madeBy: user.id, title, rationale },
     include: { author: { select: { name: true, role: true } } },
   });
+
+  // Notify team members and supervisor about logged decision
+  await createEvent({
+    type:       EVENT_TYPES.PROJECT_BRAIN_DECISION_CREATED,
+    title:      `Decision logged: ${title}`,
+    message:    `${user.name ?? user.email} logged a new project decision.`,
+    actorId:    user.id,
+    teamId:     project.teamId,
+    projectId,
+    entityType: 'DecisionLog',
+    entityId:   decision.id,
+    visibility: 'SUPERVISOR',
+    notify: {
+      includeTeamMembers: true,
+      includeSupervisor:  true,
+      href: `/dashboard/project-brain?teamId=${project.teamId}`,
+    },
+  }).catch((err) => console.error('[decisions POST] event error:', err));
 
   return NextResponse.json({ decision }, { status: 201 });
 }
