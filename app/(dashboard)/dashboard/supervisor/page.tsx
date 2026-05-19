@@ -9,6 +9,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HealthBadge } from '@/components/shared/health-badge';
+import { ExplainableScoreCard } from '@/components/metrics/explainable-score-card';
+import { calculateTeamHealthScore } from '@/lib/metrics/team-health';
+import { calculateTeamAmbiguity } from '@/lib/metrics/task-ambiguity';
 import {
   BookOpen,
   Users,
@@ -52,6 +55,17 @@ export default async function SupervisorDashboardPage() {
       </div>
     );
   }
+
+  // Calculate health metrics per supervised team (team-level only, no private student data)
+  const teamMetrics = await Promise.all(
+    data.teams.slice(0, 8).map(async (team) => {
+      const [health, ambiguity] = await Promise.all([
+        calculateTeamHealthScore(team.teamId),
+        calculateTeamAmbiguity(team.teamId),
+      ]);
+      return { teamId: team.teamId, teamName: team.teamName, health, ambiguity };
+    })
+  );
 
   const {
     supervisorName,
@@ -119,6 +133,37 @@ export default async function SupervisorDashboardPage() {
           />
         </div>
       </section>
+
+      {/* ── Per-Team Health Metrics ────────────────────────────────── */}
+      {teamMetrics.length > 0 && (
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+            <Eye className="h-4 w-4 text-muted-foreground" />
+            Team Health Overview
+          </h2>
+          <div className="space-y-4">
+            {teamMetrics.map(({ teamId, teamName, health, ambiguity }) => (
+              <div key={teamId} className="rounded-xl border bg-card px-4 py-3">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-semibold">{teamName}</p>
+                    <p className="text-xs text-muted-foreground">Team-level academic risk only — no private student data</p>
+                  </div>
+                  <Link href={`/dashboard/team?teamId=${teamId}`}>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs">
+                      View <ArrowRight className="h-3 w-3 ml-1" />
+                    </Button>
+                  </Link>
+                </div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                  <ExplainableScoreCard metric={health} compact />
+                  <ExplainableScoreCard metric={ambiguity.overallScore} compact />
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Section D: Teams Needing Attention (promoted above team board for visibility) */}
       {teamsNeedingAttention.length > 0 && (

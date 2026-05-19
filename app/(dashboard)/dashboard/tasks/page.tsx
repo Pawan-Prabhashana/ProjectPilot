@@ -8,7 +8,10 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { Progress } from '@/components/ui/progress';
 import { TaskCard } from '@/components/tasks/task-card';
 import type { TaskCardData } from '@/components/tasks/task-card';
-import { ClipboardList, Plus, Lock, AlertTriangle, Users, Crown } from 'lucide-react';
+import { MetricStatusBadge } from '@/components/metrics/metric-status-badge';
+import { scoreTaskAmbiguity } from '@/lib/metrics/task-ambiguity';
+import type { TaskInput } from '@/lib/metrics/task-ambiguity';
+import { ClipboardList, Plus, Lock, AlertTriangle, Users, Crown, HelpCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TaskStatus } from '@prisma/client';
 
@@ -72,6 +75,27 @@ export default async function TasksPage({
 
   const tasks = await getProjectTasks(project.id);
   const now = new Date();
+
+  // Compute task ambiguity scores (non-done tasks only)
+  const activeTasks = tasks.filter((t) => t.status !== 'DONE' && t.status !== 'CANCELLED');
+  const ambiguousTaskDetails = activeTasks
+    .map((t) => {
+      const input: TaskInput = {
+        id: t.id,
+        title: t.title,
+        description: t.description ?? null,
+        doneCriteria: t.doneCriteria ?? null,
+        assigneeId: t.assignee?.id ?? null,
+        dueDate: t.dueDate ?? null,
+        priority: t.priority,
+        blockerNote: t.blockerNote ?? null,
+        status: t.status,
+      };
+      return scoreTaskAmbiguity(input);
+    })
+    .filter((d) => d.score.status !== 'LOW')
+    .sort((a, b) => (b.score.score ?? 0) - (a.score.score ?? 0))
+    .slice(0, 8);
 
   // Compute stats
   const total = tasks.length;
@@ -203,6 +227,53 @@ export default async function TasksPage({
                   </Link>
                 </li>
               ))}
+          </ul>
+        </div>
+      )}
+
+      {/* ── Tasks needing clarification ──────────────────────────────── */}
+      {ambiguousTaskDetails.length > 0 && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50/30 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <HelpCircle className="h-4 w-4 text-amber-600 shrink-0" />
+            <p className="text-sm font-semibold text-amber-900">
+              Tasks needing clarification ({ambiguousTaskDetails.length})
+            </p>
+            <p className="text-xs text-amber-700 ml-1">
+              — these have missing descriptions, owners, or definitions of done
+            </p>
+          </div>
+          <ul className="space-y-2">
+            {ambiguousTaskDetails.map((detail) => (
+              <li key={detail.taskId} className="flex items-start gap-3">
+                <span className="mt-1 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/dashboard/tasks/${detail.taskId}${teamIdParam}`}
+                      className="text-xs font-semibold text-amber-900 hover:underline underline-offset-2"
+                    >
+                      {detail.taskTitle}
+                    </Link>
+                    <MetricStatusBadge
+                      status={detail.score.status}
+                      label={
+                        detail.score.status === 'CRITICAL' ? 'Very Unclear'
+                        : detail.score.status === 'HIGH' ? 'Unclear'
+                        : 'Some Gaps'
+                      }
+                      size="sm"
+                    />
+                  </div>
+                  <p className="mt-0.5 text-[11px] text-amber-700">{detail.score.summary}</p>
+                  {detail.suggestedFixes[0] && (
+                    <p className="mt-0.5 text-[11px] text-muted-foreground">
+                      Fix: {detail.suggestedFixes[0]}
+                    </p>
+                  )}
+                </div>
+              </li>
+            ))}
           </ul>
         </div>
       )}

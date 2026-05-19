@@ -10,6 +10,10 @@ import { RecentActivityFeed } from '@/components/activity/recent-activity-feed';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { ExplainableScoreCard } from '@/components/metrics/explainable-score-card';
+import { calculateTeamHealthScore } from '@/lib/metrics/team-health';
+import { calculateTeamFairnessScore } from '@/lib/metrics/team-fairness';
+import { calculateTeamAmbiguity } from '@/lib/metrics/task-ambiguity';
 import {
   Crown,
   Users,
@@ -72,6 +76,15 @@ export default async function LeaderDashboardPage({
   const data = await getLeaderDashboard(user.id, workspace?.teamId);
 
   const teamParam = workspace ? `?teamId=${workspace.teamId}` : '';
+
+  // Metrics — only when we have a valid workspace
+  const [teamHealthScore, teamFairnessResult, teamAmbiguity] = workspace?.teamId
+    ? await Promise.all([
+        calculateTeamHealthScore(workspace.teamId),
+        calculateTeamFairnessScore(workspace.teamId),
+        calculateTeamAmbiguity(workspace.teamId),
+      ])
+    : [null, null, null];
 
   if (!workspace || !data) {
     return (
@@ -179,6 +192,52 @@ export default async function LeaderDashboardPage({
           </div>
         </div>
       </section>
+
+      {/* ── Explainable Health Metrics ─────────────────────────────── */}
+      {(teamHealthScore || teamFairnessResult || teamAmbiguity) && (
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            Team Health Metrics
+          </h2>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {teamHealthScore && (
+              <ExplainableScoreCard metric={teamHealthScore} />
+            )}
+            {teamFairnessResult && (
+              <ExplainableScoreCard metric={teamFairnessResult.score} />
+            )}
+            {teamAmbiguity && (
+              <ExplainableScoreCard metric={teamAmbiguity.overallScore} />
+            )}
+          </div>
+
+          {/* Ambiguity task list — top unclear tasks */}
+          {teamAmbiguity && teamAmbiguity.topItems.length > 0 && (
+            <div className="mt-4 rounded-xl border border-amber-200 bg-amber-50/30 px-4 py-3">
+              <p className="text-xs font-semibold text-amber-900 mb-2">
+                Tasks with clarity gaps ({teamAmbiguity.ambiguousTaskCount} of {teamAmbiguity.totalActiveTasks})
+              </p>
+              <ul className="space-y-1.5">
+                {teamAmbiguity.topItems.slice(0, 4).map((item) => (
+                  <li key={item.taskId} className="flex items-start gap-2 text-xs">
+                    <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <Link
+                        href={`/dashboard/tasks/${item.taskId}${teamParam}`}
+                        className="font-medium text-amber-900 hover:underline underline-offset-2 line-clamp-1"
+                      >
+                        {item.taskTitle}
+                      </Link>
+                      <p className="text-amber-700 mt-0.5">{item.score.summary}</p>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </section>
+      )}
 
       {/* Section B: Team Attention Cards */}
       <section>

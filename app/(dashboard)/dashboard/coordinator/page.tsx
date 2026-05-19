@@ -9,6 +9,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { HealthBadge } from '@/components/shared/health-badge';
+import { MetricStatusBadge } from '@/components/metrics/metric-status-badge';
+import type { ScoreStatus } from '@/lib/metrics/types';
 import {
   Shield,
   Users,
@@ -41,6 +43,9 @@ export default async function CoordinatorDashboardPage() {
 
   const data = await getCoordinatorDashboard();
   const { stats, setupGaps, recentTeams } = data;
+
+  // Compute setup health score from observed gaps (operational only, no private student data)
+  const setupHealthScore = computeSetupHealthScore(stats, setupGaps.length);
 
   return (
     <div className="space-y-6">
@@ -87,6 +92,56 @@ export default async function CoordinatorDashboardPage() {
             label="Upcoming Consultations"
             icon={<Calendar className="h-4 w-4 text-blue-500" />}
           />
+        </div>
+      </section>
+
+      {/* ── Setup Health Score ─────────────────────────────────────── */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+          <Shield className="h-4 w-4 text-muted-foreground" />
+          Platform Setup Health
+        </h2>
+        <div className="rounded-xl border bg-card px-4 py-4">
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-semibold text-foreground">Setup Health</span>
+                <MetricStatusBadge status={setupHealthScore.status} label={setupHealthScore.statusLabel} size="sm" />
+              </div>
+              <p className="text-2xl font-bold tabular-nums text-foreground">
+                {setupHealthScore.score}<span className="text-sm font-medium text-muted-foreground">/100</span>
+              </p>
+            </div>
+            <div className="text-xs text-muted-foreground max-w-xs">
+              <p className="font-medium text-foreground mb-1">What this measures</p>
+              <p>Operational setup completeness — teams, supervisors, and project assignments. Does not include any private student data.</p>
+            </div>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">{setupHealthScore.summary}</p>
+          {setupHealthScore.recommendedAction && (
+            <div className="mt-2.5 rounded-lg bg-muted/50 px-3 py-2">
+              <p className="text-xs text-foreground">
+                <span className="font-medium">Action: </span>
+                {setupHealthScore.recommendedAction}
+              </p>
+            </div>
+          )}
+          {setupHealthScore.factors.length > 0 && (
+            <div className="mt-3 border-t pt-3">
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Factors</p>
+              <ul className="space-y-1.5">
+                {setupHealthScore.factors.map((f, i) => (
+                  <li key={i} className="flex items-start gap-2 text-xs">
+                    <span className={cn(
+                      'mt-1 h-1.5 w-1.5 rounded-full shrink-0',
+                      f.positive ? 'bg-emerald-500' : 'bg-amber-500'
+                    )} />
+                    <span className="text-muted-foreground">{f.text}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </section>
 
@@ -253,6 +308,100 @@ export default async function CoordinatorDashboardPage() {
       </div>
     </div>
   );
+}
+
+// ── Setup health score helper ─────────────────────────────────────────────────
+
+type SetupHealthFactor = { text: string; positive: boolean };
+type SetupHealthResult = {
+  score: number;
+  status: ScoreStatus;
+  statusLabel: string;
+  summary: string;
+  recommendedAction: string;
+  factors: SetupHealthFactor[];
+};
+
+function computeSetupHealthScore(
+  stats: {
+    totalTeams: number;
+    teamsWithoutSupervisor: number;
+    teamsWithoutProject: number;
+    studentsWithoutTeam: number;
+    supervisorsWithNoTeams: number;
+    unresolveedFrictionEvents: number;
+  },
+  setupGapsCount: number
+): SetupHealthResult {
+  let score = 100;
+  const factors: SetupHealthFactor[] = [];
+
+  if (stats.totalTeams === 0) {
+    return {
+      score: 0,
+      status: 'UNKNOWN',
+      statusLabel: 'No Data',
+      summary: 'No teams have been created yet.',
+      recommendedAction: 'Create teams and assign supervisors to start tracking setup health.',
+      factors: [],
+    };
+  }
+
+  if (stats.teamsWithoutSupervisor > 0) {
+    const deduction = Math.min(stats.teamsWithoutSupervisor * 10, 30);
+    score -= deduction;
+    factors.push({ text: `${stats.teamsWithoutSupervisor} team${stats.teamsWithoutSupervisor !== 1 ? 's have' : ' has'} no supervisor assigned`, positive: false });
+  }
+
+  if (stats.teamsWithoutProject > 0) {
+    const deduction = Math.min(stats.teamsWithoutProject * 10, 30);
+    score -= deduction;
+    factors.push({ text: `${stats.teamsWithoutProject} team${stats.teamsWithoutProject !== 1 ? 's have' : ' has'} no project linked`, positive: false });
+  }
+
+  if (stats.studentsWithoutTeam > 0) {
+    const deduction = Math.min(stats.studentsWithoutTeam * 5, 20);
+    score -= deduction;
+    factors.push({ text: `${stats.studentsWithoutTeam} student${stats.studentsWithoutTeam !== 1 ? 's are' : ' is'} not assigned to any team`, positive: false });
+  }
+
+  if (stats.supervisorsWithNoTeams > 0) {
+    score -= Math.min(stats.supervisorsWithNoTeams * 5, 15);
+    factors.push({ text: `${stats.supervisorsWithNoTeams} supervisor${stats.supervisorsWithNoTeams !== 1 ? 's have' : ' has'} no teams assigned`, positive: false });
+  }
+
+  if (stats.unresolveedFrictionEvents > 0) {
+    score -= Math.min(stats.unresolveedFrictionEvents * 5, 15);
+    factors.push({ text: `${stats.unresolveedFrictionEvents} unresolved friction event${stats.unresolveedFrictionEvents !== 1 ? 's' : ''} across teams`, positive: false });
+  }
+
+  if (setupGapsCount === 0) {
+    factors.push({ text: 'All teams have complete setup', positive: true });
+  }
+
+  score = Math.max(0, Math.min(100, score));
+
+  const status: ScoreStatus =
+    score >= 85 ? 'LOW' : score >= 70 ? 'BALANCED' : score >= 50 ? 'WATCH' : score >= 30 ? 'HIGH' : 'CRITICAL';
+
+  const statusLabel: Record<ScoreStatus, string> = {
+    LOW: 'Complete', BALANCED: 'Good', WATCH: 'Gaps Present',
+    HIGH: 'Incomplete', CRITICAL: 'Critical Gaps', UNKNOWN: 'No Data',
+  };
+
+  const summary = setupGapsCount === 0
+    ? 'Platform setup looks complete. All teams have supervisors and projects assigned.'
+    : `${setupGapsCount} team${setupGapsCount !== 1 ? 's have' : ' has'} incomplete setup — missing supervisors, projects, or student assignments.`;
+
+  const recommendedAction = stats.teamsWithoutSupervisor > 0
+    ? 'Assign supervisors to all active teams first, then link projects.'
+    : stats.teamsWithoutProject > 0
+      ? 'Link projects to teams so students can start logging tasks.'
+      : stats.studentsWithoutTeam > 0
+        ? 'Add unassigned students to appropriate teams.'
+        : 'Setup looks healthy. Review friction events if any are flagged.';
+
+  return { score, status, statusLabel: statusLabel[status], summary, recommendedAction, factors };
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────

@@ -9,6 +9,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { RecentActivityFeed } from '@/components/activity/recent-activity-feed';
+import { ExplainableScoreCard } from '@/components/metrics/explainable-score-card';
+import { MetricStatusBadge } from '@/components/metrics/metric-status-badge';
+import { calculateCognitiveLoadScore } from '@/lib/metrics/cognitive-load';
+import { scoreTaskAmbiguity } from '@/lib/metrics/task-ambiguity';
+import type { TaskInput } from '@/lib/metrics/task-ambiguity';
 import {
   Crown,
   ClipboardList,
@@ -66,6 +71,11 @@ export default async function MyWorkPage({
 
   const teamParam = workspace ? `?teamId=${workspace.teamId}` : '';
 
+  // Metrics — computed only when we have a valid workspace
+  const cognitiveLoadScore = workspace?.teamId
+    ? await calculateCognitiveLoadScore(user.id, workspace.teamId)
+    : null;
+
   if (!workspace || !data) {
     return (
       <div className="space-y-6">
@@ -98,6 +108,26 @@ export default async function MyWorkPage({
   const roleLabel = memberRole === 'CO_LEADER' ? 'Co-Leader' : memberRole === 'LEADER' ? 'Team Leader' : 'Member';
   const allActiveTasks = [...overdueTasks, ...dueSoonTasks, ...inProgressTasks, ...notStartedTasks];
 
+  // Task ambiguity: score each assigned task that has enough info for analysis
+  const ambiguousTaskDetails = allActiveTasks
+    .map((t) => {
+      const input: TaskInput = {
+        id: t.id,
+        title: t.title,
+        description: null,        // description not included in MyWorkTask
+        doneCriteria: t.doneCriteria ?? null,
+        assigneeId: user.id,      // task is already assigned to this user
+        dueDate: t.dueDate ?? null,
+        priority: t.priority,
+        blockerNote: t.blockerNote ?? null,
+        status: t.status,
+      };
+      return scoreTaskAmbiguity(input);
+    })
+    .filter((d) => d.score.status !== 'LOW' && d.score.score !== null)
+    .sort((a, b) => (b.score.score ?? 0) - (a.score.score ?? 0))
+    .slice(0, 3);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -123,6 +153,68 @@ export default async function MyWorkPage({
           {roleLabel}
         </Badge>
       </div>
+
+      {/* ── Workload Metrics ──────────────────────────────────────── */}
+      {cognitiveLoadScore && (
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+            <BarChart3 className="h-4 w-4 text-muted-foreground" />
+            Your Workload Snapshot
+          </h2>
+          <ExplainableScoreCard metric={cognitiveLoadScore} />
+        </section>
+      )}
+
+      {/* ── Clarity warnings for assigned tasks ───────────────────── */}
+      {ambiguousTaskDetails.length > 0 && (
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+            <Lightbulb className="h-4 w-4 text-amber-500" />
+            Tasks Needing Clarification
+            <Badge variant="secondary" className="ml-1 text-xs">
+              {ambiguousTaskDetails.length}
+            </Badge>
+          </h2>
+          <div className="space-y-2">
+            {ambiguousTaskDetails.map((detail) => (
+              <div
+                key={detail.taskId}
+                className="rounded-xl border border-amber-200 bg-amber-50/40 px-4 py-3"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <Link
+                        href={`/dashboard/tasks/${detail.taskId}${teamParam}`}
+                        className="text-sm font-semibold hover:underline underline-offset-2 truncate"
+                      >
+                        {detail.taskTitle}
+                      </Link>
+                      <MetricStatusBadge
+                        status={detail.score.status}
+                        label={detail.score.status === 'CRITICAL' ? 'Very Unclear' : detail.score.status === 'HIGH' ? 'Unclear' : 'Some Gaps'}
+                        size="sm"
+                      />
+                    </div>
+                    <p className="mt-1 text-xs text-muted-foreground">{detail.score.summary}</p>
+                    {detail.suggestedFixes[0] && (
+                      <p className="mt-1.5 text-xs text-amber-800">
+                        <span className="font-medium">Suggested fix: </span>
+                        {detail.suggestedFixes[0]}
+                      </p>
+                    )}
+                  </div>
+                  <Link href={`/dashboard/tasks/${detail.taskId}${teamParam}`}>
+                    <Button size="sm" variant="ghost" className="shrink-0 text-xs">
+                      View
+                    </Button>
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* Leader banner */}
       {isLeader && (

@@ -8,6 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { TaskStatusButton } from '@/components/tasks/task-status-button';
+import { ExplainableScoreCard } from '@/components/metrics/explainable-score-card';
+import { scoreTaskAmbiguity } from '@/lib/metrics/task-ambiguity';
 import {
   ArrowLeft, User, Clock, Target, AlertTriangle, Lock, HelpCircle,
   Zap, GitBranch, CheckCircle, Circle, ChevronRight,
@@ -47,6 +49,19 @@ export default async function TaskDetailPage({ params }: Props) {
   const isOverdue = task.dueDate && task.dueDate < now && !['DONE', 'CANCELLED'].includes(task.status);
   const sc = statusConfig[task.status];
   const pc = priorityConfig[task.priority];
+
+  // Compute task ambiguity score
+  const ambiguityDetail = scoreTaskAmbiguity({
+    id: task.id,
+    title: task.title,
+    description: task.description ?? null,
+    doneCriteria: (task as { doneCriteria?: string | null }).doneCriteria ?? null,
+    assigneeId: task.assignee?.id ?? null,
+    dueDate: task.dueDate ?? null,
+    priority: task.priority,
+    blockerNote: (task as { blockerNote?: string | null }).blockerNote ?? null,
+    status: task.status,
+  });
 
   // Steps done
   const steps = task.decomposition?.steps as { title: string; estimatedMinutes: number; orderIndex: number; done: boolean }[] ?? [];
@@ -142,12 +157,36 @@ export default async function TaskDetailPage({ params }: Props) {
             </section>
           )}
 
-          {/* Ambiguity flag */}
-          {task.ambiguityFlag && (
+          {/* Task Clarity Analysis */}
+          {ambiguityDetail.score.status !== 'LOW' && !['DONE', 'CANCELLED'].includes(task.status) && (
             <section>
               <h2 className="mb-2 text-sm font-semibold flex items-center gap-1.5">
                 <HelpCircle className="h-4 w-4 text-amber-500" />
-                Ambiguity Signal
+                Task Clarity
+              </h2>
+              <ExplainableScoreCard metric={ambiguityDetail.score} />
+              {ambiguityDetail.suggestedFixes.length > 0 && (
+                <div className="mt-3 space-y-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground">Suggested fixes:</p>
+                  <ul className="space-y-1">
+                    {ambiguityDetail.suggestedFixes.map((fix, i) => (
+                      <li key={i} className="flex items-start gap-2 text-xs text-muted-foreground">
+                        <span className="mt-0.5 h-1.5 w-1.5 rounded-full bg-amber-400 shrink-0" />
+                        {fix}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* Legacy ambiguity flag (from DB — shown alongside formula score) */}
+          {task.ambiguityFlag && ambiguityDetail.score.status === 'LOW' && (
+            <section>
+              <h2 className="mb-2 text-sm font-semibold flex items-center gap-1.5">
+                <HelpCircle className="h-4 w-4 text-amber-500" />
+                Ambiguity Flag
               </h2>
               <div className="rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800">
                 {task.ambiguityFlag.description}
