@@ -1,0 +1,61 @@
+# ── ProjectPilot Neuro — Local Development Compose ────────────────────────────
+#
+# Starts:
+#   - PostgreSQL database (port 5432)
+#   - Next.js application (port 3000)
+#
+# Usage:
+#   docker compose up -d         # start everything
+#   docker compose exec app npm run db:setup  # run migrations + seed
+#   docker compose down          # stop all services
+#   docker compose down -v       # stop and delete database volume
+#
+# For production, use the standalone Dockerfile and inject secrets via
+# your cloud provider's secret manager (AWS Secrets Manager, etc.)
+# ─────────────────────────────────────────────────────────────────────────────
+
+version: '3.9'
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: projectpilot
+      POSTGRES_PASSWORD: projectpilot_dev
+      POSTGRES_DB: projectpilot
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U projectpilot']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      target: builder
+    restart: unless-stopped
+    ports:
+      - '3000:3000'
+    environment:
+      DATABASE_URL: postgresql://projectpilot:projectpilot_dev@db:5432/projectpilot
+      NEXTAUTH_URL: http://localhost:3000
+      # Change these before any production-like usage:
+      NEXTAUTH_SECRET: dev-nextauth-secret-change-in-production-32chars
+      ENCRYPTION_SECRET: dev-encryption-secret-change-in-production-32chars
+      NODE_ENV: development
+    depends_on:
+      db:
+        condition: service_healthy
+    command: npm run dev
+    volumes:
+      - .:/app
+      - /app/node_modules
+      - /app/.next
+
+volumes:
+  postgres_data:
