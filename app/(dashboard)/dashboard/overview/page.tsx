@@ -1,34 +1,12 @@
-import { redirect } from 'next/navigation';
-import { requireAuth } from '@/lib/rbac';
-
 /**
- * /dashboard/overview — smart landing page.
+ * /dashboard/overview — role-based landing page.
  *
- * Immediately redirects each role to their primary dashboard while
- * preserving the teamId query parameter so workspace context is not lost.
+ * Role routing is handled entirely in middleware.ts so we never call
+ * redirect() inside a server component during a post-login navigation
+ * (which triggers the Next.js App Router cache bug).
  *
- * STUDENT      → /dashboard/my-work
- * SUPERVISOR   → /dashboard/supervisor
- * COORDINATOR  → /dashboard/coordinator
+ * This page is kept as a minimal fallback in case middleware is bypassed.
  */
-export default async function OverviewPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ teamId?: string }>;
-}) {
-  const user = await requireAuth();
-  const { teamId } = await searchParams;
-
-  const params = teamId ? `?teamId=${teamId}` : '';
-
-  if (user.role === 'SUPERVISOR') {
-    redirect(`/dashboard/supervisor`);
-  }
-
-  if (user.role === 'COORDINATOR') {
-    redirect(`/dashboard/coordinator`);
-  }
-
-  // STUDENT (default)
-  redirect(`/dashboard/my-work${params}`);
+export default function OverviewPage() {
+  return null;
 }

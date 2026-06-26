@@ -8,7 +8,6 @@ import { RecentActivityFeed } from '@/components/activity/recent-activity-feed';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { HealthBadge } from '@/components/shared/health-badge';
 import { MetricStatusBadge } from '@/components/metrics/metric-status-badge';
 import type { ScoreStatus } from '@/lib/metrics/types';
 import {
