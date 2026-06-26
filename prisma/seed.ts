@@ -444,6 +444,385 @@ async function main() {
   }
   console.log('  ✓ FormationBatchStudent rows created');
 
+  // ── Part 3: Student Formation Profiles ────────────────────────────────────
+  // Idempotent: uses upsert on StudentFormationProfile (@@unique studentProfileId)
+  // and @@unique constraints on StudentSkill, StudentAvailabilitySlot, StudentRolePreference.
+
+  console.log('\n  Seeding Part 3: Student Formation Profiles…');
+
+  // Varied data per student — 12 students, realistic but not uniform
+  const studentFormationData: Array<{
+    email: string;
+    weeklyCapacityHours: number;
+    maxConcurrentTasks: number;
+    skills: Array<{ key: string; label: string; category: string; level: number; interest: number }>;
+    roles: Array<{ key: string; label: string; pref: number; conf: number; avoid: boolean }>;
+    domains: string[];
+    supportPrefs: Record<string, boolean>;
+    privateNote: string | null;
+  }> = [
+    {
+      email: 'aisha@demo.com',
+      weeklyCapacityHours: 12,
+      maxConcurrentTasks: 3,
+      skills: [
+        { key: 'frontend', label: 'Frontend Development', category: 'Technical', level: 4, interest: 5 },
+        { key: 'ui_ux', label: 'UI/UX Design', category: 'Design', level: 3, interest: 4 },
+        { key: 'project_management', label: 'Project Management', category: 'Management', level: 4, interest: 4 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 3, interest: 3 },
+        { key: 'testing', label: 'Testing & QA', category: 'Quality', level: 2, interest: 2 },
+      ],
+      roles: [
+        { key: 'team_leader', label: 'Team Leader', pref: 5, conf: 4, avoid: false },
+        { key: 'frontend_developer', label: 'Frontend Developer', pref: 4, conf: 4, avoid: false },
+        { key: 'ui_ux_designer', label: 'UI/UX Designer', pref: 3, conf: 3, avoid: false },
+        { key: 'qa_tester', label: 'QA Tester', pref: 1, conf: 2, avoid: true },
+      ],
+      domains: ['Web application', 'Education technology'],
+      supportPrefs: { prefers_clear_definition_of_done: true, prefers_visual_task_board: true },
+      privateNote: null,
+    },
+    {
+      email: 'ruvan@demo.com',
+      weeklyCapacityHours: 10,
+      maxConcurrentTasks: 2,
+      skills: [
+        { key: 'backend', label: 'Backend Development', category: 'Technical', level: 4, interest: 5 },
+        { key: 'database', label: 'Database Design', category: 'Technical', level: 4, interest: 4 },
+        { key: 'devops', label: 'DevOps / Deployment', category: 'Technical', level: 3, interest: 3 },
+        { key: 'testing', label: 'Testing & QA', category: 'Quality', level: 3, interest: 3 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 2, interest: 2 },
+      ],
+      roles: [
+        { key: 'backend_developer', label: 'Backend Developer', pref: 5, conf: 5, avoid: false },
+        { key: 'database_designer', label: 'Database Designer', pref: 4, conf: 4, avoid: false },
+        { key: 'team_leader', label: 'Team Leader', pref: 2, conf: 2, avoid: false },
+        { key: 'presentation_lead', label: 'Presentation Lead', pref: 1, conf: 2, avoid: true },
+      ],
+      domains: ['Web application', 'Data analytics'],
+      supportPrefs: { prefers_async_communication: true, prefers_written_instructions: true, prefers_smaller_task_chunks: true },
+      privateNote: 'I work best with detailed written specs before starting a task.',
+    },
+    {
+      email: 'thilini@demo.com',
+      weeklyCapacityHours: 8,
+      maxConcurrentTasks: 2,
+      skills: [
+        { key: 'ui_ux', label: 'UI/UX Design', category: 'Design', level: 5, interest: 5 },
+        { key: 'frontend', label: 'Frontend Development', category: 'Technical', level: 3, interest: 4 },
+        { key: 'research', label: 'Research', category: 'Research', level: 4, interest: 4 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 4, interest: 3 },
+      ],
+      roles: [
+        { key: 'ui_ux_designer', label: 'UI/UX Designer', pref: 5, conf: 5, avoid: false },
+        { key: 'frontend_developer', label: 'Frontend Developer', pref: 3, conf: 3, avoid: false },
+        { key: 'research_lead', label: 'Research Lead', pref: 4, conf: 4, avoid: false },
+        { key: 'backend_developer', label: 'Backend Developer', pref: 1, conf: 1, avoid: true },
+      ],
+      domains: ['Accessibility / assistive technology', 'Healthcare technology'],
+      supportPrefs: { prefers_predictable_meeting_times: true, prefers_visual_task_board: true, prefers_advance_notice_before_changes: true },
+      privateNote: null,
+    },
+    {
+      email: 'sachith@demo.com',
+      weeklyCapacityHours: 14,
+      maxConcurrentTasks: 4,
+      skills: [
+        { key: 'backend', label: 'Backend Development', category: 'Technical', level: 5, interest: 5 },
+        { key: 'ai_ml', label: 'AI / Machine Learning', category: 'Technical', level: 4, interest: 5 },
+        { key: 'database', label: 'Database Design', category: 'Technical', level: 4, interest: 4 },
+        { key: 'devops', label: 'DevOps / Deployment', category: 'Technical', level: 3, interest: 3 },
+        { key: 'testing', label: 'Testing & QA', category: 'Quality', level: 3, interest: 3 },
+        { key: 'project_management', label: 'Project Management', category: 'Management', level: 3, interest: 3 },
+      ],
+      roles: [
+        { key: 'backend_developer', label: 'Backend Developer', pref: 5, conf: 5, avoid: false },
+        { key: 'team_leader', label: 'Team Leader', pref: 4, conf: 4, avoid: false },
+        { key: 'database_designer', label: 'Database Designer', pref: 4, conf: 4, avoid: false },
+        { key: 'frontend_developer', label: 'Frontend Developer', pref: 2, conf: 2, avoid: false },
+      ],
+      domains: ['AI / ML', 'Web application'],
+      supportPrefs: { prefers_clear_definition_of_done: true },
+      privateNote: null,
+    },
+    {
+      email: 'kavya@demo.com',
+      weeklyCapacityHours: 10,
+      maxConcurrentTasks: 3,
+      skills: [
+        { key: 'testing', label: 'Testing & QA', category: 'Quality', level: 5, interest: 5 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 4, interest: 4 },
+        { key: 'research', label: 'Research', category: 'Research', level: 3, interest: 4 },
+        { key: 'frontend', label: 'Frontend Development', category: 'Technical', level: 2, interest: 2 },
+      ],
+      roles: [
+        { key: 'qa_tester', label: 'QA Tester', pref: 5, conf: 5, avoid: false },
+        { key: 'documentation_lead', label: 'Documentation Lead', pref: 4, conf: 4, avoid: false },
+        { key: 'research_lead', label: 'Research Lead', pref: 3, conf: 3, avoid: false },
+        { key: 'team_leader', label: 'Team Leader', pref: 2, conf: 2, avoid: false },
+      ],
+      domains: ['Web application', 'Accessibility / assistive technology'],
+      supportPrefs: { prefers_written_instructions: true, prefers_smaller_task_chunks: true, prefers_regular_progress_checkpoints: true },
+      privateNote: null,
+    },
+    {
+      email: 'milan@demo.com',
+      weeklyCapacityHours: 9,
+      maxConcurrentTasks: 2,
+      skills: [
+        { key: 'mobile_development', label: 'Mobile Development', category: 'Technical', level: 4, interest: 5 },
+        { key: 'frontend', label: 'Frontend Development', category: 'Technical', level: 3, interest: 4 },
+        { key: 'ui_ux', label: 'UI/UX Design', category: 'Design', level: 3, interest: 3 },
+        { key: 'presentation', label: 'Presentation', category: 'Communication', level: 4, interest: 4 },
+      ],
+      roles: [
+        { key: 'frontend_developer', label: 'Frontend Developer', pref: 4, conf: 4, avoid: false },
+        { key: 'presentation_lead', label: 'Presentation Lead', pref: 4, conf: 4, avoid: false },
+        { key: 'ui_ux_designer', label: 'UI/UX Designer', pref: 3, conf: 3, avoid: false },
+        { key: 'database_designer', label: 'Database Designer', pref: 1, conf: 1, avoid: true },
+      ],
+      domains: ['Mobile application', 'Web application'],
+      supportPrefs: { prefers_reduced_meeting_load: true, prefers_async_communication: true },
+      privateNote: null,
+    },
+    {
+      email: 'nadeesha@demo.com',
+      weeklyCapacityHours: 11,
+      maxConcurrentTasks: 3,
+      skills: [
+        { key: 'ai_ml', label: 'AI / Machine Learning', category: 'Technical', level: 4, interest: 5 },
+        { key: 'research', label: 'Research', category: 'Research', level: 5, interest: 5 },
+        { key: 'backend', label: 'Backend Development', category: 'Technical', level: 3, interest: 3 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 4, interest: 4 },
+        { key: 'presentation', label: 'Presentation', category: 'Communication', level: 3, interest: 3 },
+      ],
+      roles: [
+        { key: 'research_lead', label: 'Research Lead', pref: 5, conf: 5, avoid: false },
+        { key: 'documentation_lead', label: 'Documentation Lead', pref: 4, conf: 4, avoid: false },
+        { key: 'team_leader', label: 'Team Leader', pref: 3, conf: 3, avoid: false },
+        { key: 'qa_tester', label: 'QA Tester', pref: 2, conf: 2, avoid: false },
+      ],
+      domains: ['AI / ML', 'Education technology'],
+      supportPrefs: { prefers_clear_definition_of_done: true, prefers_visual_task_board: true, prefers_regular_progress_checkpoints: true },
+      privateNote: null,
+    },
+    {
+      email: 'chamath@demo.com',
+      weeklyCapacityHours: 8,
+      maxConcurrentTasks: 2,
+      skills: [
+        { key: 'devops', label: 'DevOps / Deployment', category: 'Technical', level: 4, interest: 4 },
+        { key: 'backend', label: 'Backend Development', category: 'Technical', level: 4, interest: 4 },
+        { key: 'database', label: 'Database Design', category: 'Technical', level: 3, interest: 3 },
+        { key: 'testing', label: 'Testing & QA', category: 'Quality', level: 3, interest: 3 },
+      ],
+      roles: [
+        { key: 'backend_developer', label: 'Backend Developer', pref: 4, conf: 4, avoid: false },
+        { key: 'database_designer', label: 'Database Designer', pref: 3, conf: 4, avoid: false },
+        { key: 'qa_tester', label: 'QA Tester', pref: 3, conf: 3, avoid: false },
+        { key: 'presentation_lead', label: 'Presentation Lead', pref: 1, conf: 1, avoid: true },
+      ],
+      domains: ['Data analytics', 'Cybersecurity'],
+      supportPrefs: { prefers_async_communication: true, prefers_advance_notice_before_changes: true },
+      privateNote: 'I prefer not to present to large groups.',
+    },
+    {
+      email: 'ishani@demo.com',
+      weeklyCapacityHours: 10,
+      maxConcurrentTasks: 3,
+      skills: [
+        { key: 'frontend', label: 'Frontend Development', category: 'Technical', level: 4, interest: 5 },
+        { key: 'ui_ux', label: 'UI/UX Design', category: 'Design', level: 4, interest: 5 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 3, interest: 3 },
+        { key: 'testing', label: 'Testing & QA', category: 'Quality', level: 2, interest: 2 },
+      ],
+      roles: [
+        { key: 'frontend_developer', label: 'Frontend Developer', pref: 5, conf: 5, avoid: false },
+        { key: 'ui_ux_designer', label: 'UI/UX Designer', pref: 5, conf: 4, avoid: false },
+        { key: 'documentation_lead', label: 'Documentation Lead', pref: 3, conf: 3, avoid: false },
+        { key: 'backend_developer', label: 'Backend Developer', pref: 1, conf: 1, avoid: true },
+      ],
+      domains: ['Accessibility / assistive technology', 'Web application'],
+      supportPrefs: { prefers_visual_task_board: true, prefers_written_instructions: true, prefers_low_pressure_presentations: true },
+      privateNote: null,
+    },
+    {
+      email: 'dinusha@demo.com',
+      weeklyCapacityHours: 12,
+      maxConcurrentTasks: 3,
+      skills: [
+        { key: 'project_management', label: 'Project Management', category: 'Management', level: 5, interest: 5 },
+        { key: 'presentation', label: 'Presentation', category: 'Communication', level: 5, interest: 5 },
+        { key: 'research', label: 'Research', category: 'Research', level: 4, interest: 4 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 4, interest: 4 },
+        { key: 'frontend', label: 'Frontend Development', category: 'Technical', level: 2, interest: 2 },
+      ],
+      roles: [
+        { key: 'team_leader', label: 'Team Leader', pref: 5, conf: 5, avoid: false },
+        { key: 'presentation_lead', label: 'Presentation Lead', pref: 5, conf: 5, avoid: false },
+        { key: 'client_communication_lead', label: 'Client Communication Lead', pref: 4, conf: 4, avoid: false },
+        { key: 'qa_tester', label: 'QA Tester', pref: 1, conf: 2, avoid: true },
+      ],
+      domains: ['Business process automation', 'Education technology'],
+      supportPrefs: { prefers_clear_definition_of_done: true, prefers_predictable_meeting_times: true },
+      privateNote: null,
+    },
+    {
+      email: 'sahan@demo.com',
+      weeklyCapacityHours: 6,
+      maxConcurrentTasks: 2,
+      skills: [
+        { key: 'backend', label: 'Backend Development', category: 'Technical', level: 3, interest: 4 },
+        { key: 'database', label: 'Database Design', category: 'Technical', level: 4, interest: 4 },
+        { key: 'testing', label: 'Testing & QA', category: 'Quality', level: 3, interest: 3 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 2, interest: 2 },
+      ],
+      roles: [
+        { key: 'database_designer', label: 'Database Designer', pref: 5, conf: 4, avoid: false },
+        { key: 'backend_developer', label: 'Backend Developer', pref: 4, conf: 3, avoid: false },
+        { key: 'qa_tester', label: 'QA Tester', pref: 3, conf: 3, avoid: false },
+        { key: 'presentation_lead', label: 'Presentation Lead', pref: 1, conf: 1, avoid: true },
+      ],
+      domains: ['Data analytics', 'Web application'],
+      supportPrefs: { prefers_reduced_meeting_load: true, prefers_smaller_task_chunks: true, prefers_regular_progress_checkpoints: true },
+      privateNote: 'Prefer async standups over live daily meetings.',
+    },
+    {
+      email: 'vishmi@demo.com',
+      weeklyCapacityHours: 10,
+      maxConcurrentTasks: 3,
+      skills: [
+        { key: 'research', label: 'Research', category: 'Research', level: 4, interest: 5 },
+        { key: 'presentation', label: 'Presentation', category: 'Communication', level: 4, interest: 4 },
+        { key: 'documentation', label: 'Documentation', category: 'Communication', level: 5, interest: 4 },
+        { key: 'frontend', label: 'Frontend Development', category: 'Technical', level: 3, interest: 3 },
+        { key: 'ui_ux', label: 'UI/UX Design', category: 'Design', level: 3, interest: 4 },
+      ],
+      roles: [
+        { key: 'documentation_lead', label: 'Documentation Lead', pref: 5, conf: 5, avoid: false },
+        { key: 'research_lead', label: 'Research Lead', pref: 4, conf: 4, avoid: false },
+        { key: 'presentation_lead', label: 'Presentation Lead', pref: 4, conf: 4, avoid: false },
+        { key: 'backend_developer', label: 'Backend Developer', pref: 1, conf: 1, avoid: true },
+      ],
+      domains: ['Healthcare technology', 'Sustainability'],
+      supportPrefs: { prefers_written_instructions: true, prefers_advance_notice_before_changes: true, prefers_low_pressure_presentations: true },
+      privateNote: null,
+    },
+  ];
+
+  const DAYS_SEED = ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'] as const;
+  const BLOCKS_SEED = ['MORNING','AFTERNOON','EVENING','NIGHT'] as const;
+
+  for (const sd of studentFormationData) {
+    const su = await prisma.user.findUnique({ where: { email: sd.email } });
+    if (!su) continue;
+    const sp = await prisma.studentProfile.findUnique({ where: { userId: su.id } });
+    if (!sp) continue;
+
+    // Upsert the base profile
+    const fp = await prisma.studentFormationProfile.upsert({
+      where: { studentProfileId: sp.id },
+      update: {
+        status: 'SUBMITTED',
+        weeklyCapacityHours: sd.weeklyCapacityHours,
+        maxConcurrentTasks: sd.maxConcurrentTasks,
+        domainPreferences: sd.domains,
+        safeSupportPreferences: sd.supportPrefs,
+        privateSupportNotes: sd.privateNote,
+        submittedAt: new Date('2026-06-01T09:00:00Z'),
+      },
+      create: {
+        studentProfileId: sp.id,
+        status: 'SUBMITTED',
+        weeklyCapacityHours: sd.weeklyCapacityHours,
+        maxConcurrentTasks: sd.maxConcurrentTasks,
+        domainPreferences: sd.domains,
+        safeSupportPreferences: sd.supportPrefs,
+        privateSupportNotes: sd.privateNote,
+        completionScore: 75,
+        submittedAt: new Date('2026-06-01T09:00:00Z'),
+      },
+    });
+
+    // Upsert skills
+    for (const sk of sd.skills) {
+      await prisma.studentSkill.upsert({
+        where: { profileId_skillKey: { profileId: fp.id, skillKey: sk.key } },
+        update: { level: sk.level, interest: sk.interest },
+        create: {
+          profileId: fp.id,
+          skillKey: sk.key,
+          skillLabel: sk.label,
+          category: sk.category,
+          level: sk.level,
+          interest: sk.interest,
+          source: 'SELF_ASSESSED',
+        },
+      });
+    }
+
+    // Upsert role preferences
+    for (const ro of sd.roles) {
+      await prisma.studentRolePreference.upsert({
+        where: { profileId_roleKey: { profileId: fp.id, roleKey: ro.key } },
+        update: { preferenceLevel: ro.pref, confidenceLevel: ro.conf, avoid: ro.avoid },
+        create: {
+          profileId: fp.id,
+          roleKey: ro.key,
+          roleLabel: ro.label,
+          preferenceLevel: ro.pref,
+          confidenceLevel: ro.conf,
+          avoid: ro.avoid,
+        },
+      });
+    }
+
+    // Upsert a simple availability grid (weekdays available, weekends limited, nights unavailable)
+    for (const day of DAYS_SEED) {
+      for (const block of BLOCKS_SEED) {
+        let level: 'PREFERRED' | 'AVAILABLE' | 'LIMITED' | 'UNAVAILABLE' = 'AVAILABLE';
+        if (block === 'NIGHT') level = 'UNAVAILABLE';
+        else if (day === 'SATURDAY' || day === 'SUNDAY') level = 'LIMITED';
+        else if (block === 'AFTERNOON') level = 'PREFERRED';
+
+        await prisma.studentAvailabilitySlot.upsert({
+          where: { profileId_dayOfWeek_block: { profileId: fp.id, dayOfWeek: day, block } },
+          update: { level },
+          create: { profileId: fp.id, dayOfWeek: day, block, level },
+        });
+      }
+    }
+  }
+
+  // Recalculate completion scores after seeding all sub-records
+  for (const sd of studentFormationData) {
+    const su = await prisma.user.findUnique({ where: { email: sd.email } });
+    if (!su) continue;
+    const sp = await prisma.studentProfile.findUnique({ where: { userId: su.id } });
+    if (!sp) continue;
+    const fp = await prisma.studentFormationProfile.findUnique({
+      where: { studentProfileId: sp.id },
+      include: { skills: true, availability: true, rolePreferences: true },
+    });
+    if (!fp) continue;
+
+    let score = 0;
+    if (fp.weeklyCapacityHours !== 8) score += 10;
+    if (fp.skills.length >= 3) score += 25;
+    if (fp.rolePreferences.length >= 1) score += 20;
+    if (fp.availability.length >= 6) score += 20;
+    if (Array.isArray(fp.domainPreferences) && (fp.domainPreferences as unknown[]).length > 0) score += 10;
+    if (fp.safeSupportPreferences && Object.keys(fp.safeSupportPreferences as object).length > 0) score += 15;
+    score = Math.min(100, score);
+
+    await prisma.studentFormationProfile.update({
+      where: { id: fp.id },
+      data: { completionScore: score },
+    });
+  }
+
+  console.log('  ✓ StudentFormationProfile records created/updated for', studentFormationData.length, 'students');
+
   console.log('\n✅  Seeding complete!\n');
   console.log('Demo credentials (all passwords: demo1234)');
   console.log('─'.repeat(50));

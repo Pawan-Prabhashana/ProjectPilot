@@ -118,15 +118,19 @@ Adding these fields allows coordinators and the formation engine to:
 
 ## 4. What This Enables for Later Parts
 
-### Part 3 — Student Formation Profile
+### Part 3 — Student Formation Profile (done)
 
-The `StudentIntake` row is the anchor point for the formation profile that Part 3 adds:
-- Skill inventory (which skills does this student bring?)
-- Structured availability / schedule (when are they free?)
-- Role preference (what role do they want?)
+Part 3 added `StudentFormationProfile` linked to `StudentProfile` (via `@@unique studentProfileId`):
 
-These will be stored as child records linked to `StudentIntake.id` rather than directly to
-`StudentProfile`, keeping formation-specific data separate from the permanent profile.
+- **`StudentSkill`** — skill inventory with level (1–5), interest (1–5), category, and source
+- **`StudentAvailabilitySlot`** — weekly schedule grid (7 days × 4 blocks) with availability level
+- **`StudentRolePreference`** — per-role preference, confidence, and avoid flags
+- **`StudentFormationProfile`** — base profile with capacity, domain preferences, safe support preferences (non-diagnostic), and private notes (student-only)
+
+The profile has a computed `completionScore` (0–100) calculated server-side.
+When submitted, `StudentIntake.status` is automatically upgraded from `PROFILE_PENDING` to `READY_FOR_FORMATION`.
+
+The coordinator Formation Setup page now shows aggregate profile readiness counts without exposing any individual student data or private notes.
 
 ### Part 4 — Project Topic Preferences
 

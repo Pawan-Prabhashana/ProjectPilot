@@ -70,10 +70,8 @@ operational data and signals that the formation engine will consume.
 
 These are **planned next modules**, not implemented yet:
 
-- A **student skill inventory / skill matrix** (structured skills per student) — Part 3.
 - A **project topic catalogue** with preference capture and duplicate-selection detection — Part 4.
-- A **structured availability** model and schedule **overlap scoring** — Part 3.
-- A **role catalogue** and **role suitability scoring** — Part 3.
+- A **formation engine** that uses the skill, availability, role, and capacity data from Part 3 to produce balanced teams — Part 5.
 - A **formation engine** that produces balanced teams — Part 5 (the batch/rule-set foundation is now in place).
 - **Capacity-aware task allocation** that distributes tasks by each member's capacity — Part 7+.
 - **Gap detection** for missing critical skills — Part 5+.
@@ -113,9 +111,16 @@ models added to the schema. Seed data creates a demo active term, formation batc
 intake rows for all demo students. Coordinator Formation Setup page added at
 `/dashboard/coordinator/formation-setup`. No matching algorithm yet.
 
-**Stage 3 (Part 3) — Student formation profile (planned):**
-Student skill inventory, structured availability/schedule capture, and role preference model.
-These are the inputs the formation engine reads.
+**Stage 3 (Part 3) — Student formation profile (done):**
+`StudentFormationProfile`, `StudentSkill`, `StudentAvailabilitySlot`, and `StudentRolePreference`
+models added to the schema. Covers skill inventory (level + interest per skill), weekly capacity,
+max concurrent tasks, schedule availability grid (7 days × 4 blocks), role preferences with
+confidence and avoidance flags, domain preferences, and safe support preferences (non-diagnostic
+style signals). Private support notes field is student-only and never queried in coordinator or
+supervisor services. Student Formation Profile page at `/dashboard/student/formation-profile`.
+Coordinator Formation Setup page updated with aggregate profile readiness counts (submitted, draft,
+no profile, average score, no-skills count). Seed data creates submitted profiles for all 12 demo
+students with varied, realistic data.
 
 **Stage 4 (Part 4) — Project topic catalogue (planned):**
 Project topic catalogue, student project preference ranking, and duplicate-selection detection.
