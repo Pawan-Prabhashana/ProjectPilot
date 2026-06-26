@@ -147,10 +147,13 @@ Coordinator-only API at `/api/formation-engine/run` and `/api/formation-engine/l
 "Formation Engine Preview" section on the Formation Setup page. No AI/LLM is used: same input ⇒ same
 output. See `docs/TEAM_FORMATION_ENGINE.md`.
 
-**Stage 6 (Part 6) — Coordinator formation workspace (planned):**
-Full formation run UI, manual drag/drop adjustment, override tools, supervisor allocation, and a
-coordinator approval flow that **publishes** approved drafts into real `Team`/`TeamMember`/`Project`
-records and updates `FormationBatch.status` to `APPROVED → PUBLISHED`.
+**Stage 6 (Part 6) — Coordinator formation workspace (done):**
+Full formation run UI, manual adjustment controls (rename team, change status, change member role,
+move member between teams), a readiness checklist, and a coordinator approval flow that **publishes**
+approved drafts into real `Team`/`TeamMember`/`Project` records. Updates `StudentIntake`,
+`FormationBatchStudent`, `FormationBatch.status → PUBLISHED`, and `TeamFormationRun.publishedAt`.
+Duplicate publishing is blocked. Route: `/dashboard/coordinator/team-formation`.
+See `docs/COORDINATOR_FORMATION_WORKSPACE.md`.
 
 **Stage 7 (Part 7+) — Allocation & oversight (planned):**
 Capacity-aware task allocation, capacity-aware supervisor allocation, and ongoing team-health-driven

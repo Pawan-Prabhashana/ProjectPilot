@@ -188,12 +188,28 @@ Existing models updated for Part 5 (new relations only):
 - `StudentProfile` — `draftTeamMemberships`, `draftTeamWarnings`
 - `StudentIntake` — `draftTeamMemberships`
 
-### Part 6 — Coordinator Formation Workspace
+### Part 6 — Coordinator Formation Workspace (done)
 
 The coordinator can:
-- Review proposed teams before publishing.
-- Override individual placements (`FormationBatchStudent.locked = true`).
-- Approve and publish the batch (`FormationBatch.status = APPROVED → PUBLISHED`).
+- Review draft teams, scores, warnings, and engine explanations.
+- Rename draft teams, change their status (`DRAFT → NEEDS_REVIEW → READY → LOCKED`).
+- Change a member's suggested role key and label.
+- Move a member from one draft team to another within the same run.
+- Run a readiness validation checklist before publishing.
+- Publish an approved run into real `Team`, `TeamMember`, and `Project` records.
+
+**Schema additions (Part 6):**
+- `TeamFormationRun.publishedAt DateTime?`
+- `TeamFormationRun.publishedById String?` → `User` (named relation `"TeamFormationRunPublisher"`)
+- `TeamFormationRun.publishSummary Json?`
+- `Team.sourceDraftTeamId String? @unique` → `DraftTeam` (named relation `"DraftTeamPublishedTeam"`)
+- `DraftTeam.publishedTeam Team?` (inverse relation)
+
+Publishing is transactional. Duplicate publishing is blocked. `FormationBatch.status` is updated to
+`PUBLISHED`. `StudentIntake.status` and `FormationBatchStudent.status` are updated to `ASSIGNED_TO_TEAM`
+and `ASSIGNED` respectively.
+
+See `docs/COORDINATOR_FORMATION_WORKSPACE.md` for full details.
 
 ---
 
