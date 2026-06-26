@@ -132,10 +132,21 @@ When submitted, `StudentIntake.status` is automatically upgraded from `PROFILE_P
 
 The coordinator Formation Setup page now shows aggregate profile readiness counts without exposing any individual student data or private notes.
 
-### Part 4 — Project Topic Preferences
+### Part 4 — Project Topic Preferences (done)
 
-A project topic catalogue and per-student preference ranking links to `StudentIntake`. The
-duplicate-preference detection query groups by `termId` and `topicId`.
+Three new models:
+
+- **`ProjectTopic`** — a coordinator-defined capstone project topic for a term. Distinct from the operational `Project` model. Includes title, slug, domain, difficulty, status, team slots, capacity limits, `requiredSkills` and `preferredSkills` JSON arrays.
+- **`ProjectPreference`** — a student's ranked selection of a topic (rank 1 = top choice). Unique per student per topic per term. Saved as DRAFT then SUBMITTED.
+- **`ProjectSelectionConflict`** — a detected demand imbalance. Types: `OVER_SELECTED`, `NO_INTEREST`, `CAPACITY_EXCEEDED`, `SKILL_GAP`, `STUDENT_MISSING_PREFERENCES`. Deterministically recalculated by the conflict service.
+
+The coordinator topic page at `/dashboard/coordinator/project-topics` shows demand counts (per topic) and conflict cards. The student page at `/dashboard/student/project-preferences` shows only OPEN topics and the student's own ranked selections — no demand counts are exposed to students.
+
+Existing models updated:
+- `AcademicTerm` — added `projectTopics`, `projectPreferences`, `projectSelectionConflicts` relations.
+- `StudentProfile` — added `projectPreferences`, `projectSelectionConflicts` relations.
+- `SupervisorProfile` — added `projectTopics` relation.
+- `User` — added `createdProjectTopics` relation (named `ProjectTopicCreator`).
 
 ### Part 5 — Formation Engine
 

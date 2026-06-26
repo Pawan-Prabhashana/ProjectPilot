@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { requireAuth } from '@/lib/rbac';
 import { getFormationSetupData } from '@/lib/services/formation/setup';
 import { getFormationProfileReadiness } from '@/lib/services/formation/student-profile';
+import { getProjectPreferenceReadiness } from '@/lib/services/formation/project-topics';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -45,6 +46,11 @@ export default async function FormationSetupPage() {
   // Fetch aggregate formation profile readiness (no private data)
   const profileReadiness = activeTerm
     ? await getFormationProfileReadiness(activeTerm.id)
+    : null;
+
+  // Fetch project preference readiness (Part 4, non-sensitive aggregate)
+  const prefReadiness = activeTerm
+    ? await getProjectPreferenceReadiness(activeTerm.id)
     : null;
 
   return (
@@ -222,7 +228,49 @@ export default async function FormationSetupPage() {
             </section>
           )}
 
-          {/* ── Section 4: Formation batches ── */}
+          {/* ── Section 4: Project preference readiness (Part 4) ── */}
+          {prefReadiness && (
+            <section>
+              <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+                <BookOpen className="h-4 w-4 text-muted-foreground" />
+                Project Preference Readiness
+              </h2>
+              <Card>
+                <CardContent className="pt-4 pb-4 space-y-3">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <IntakeStatBlock
+                      label="Open Topics"
+                      value={prefReadiness.openTopics}
+                      icon={<BookOpen className="h-4 w-4 text-sky-500" />}
+                    />
+                    <IntakeStatBlock
+                      label="Submitted Pref. Sets"
+                      value={prefReadiness.submittedStudents}
+                      icon={<CheckCircle className="h-4 w-4 text-emerald-500" />}
+                    />
+                    <IntakeStatBlock
+                      label="Missing Preferences"
+                      value={prefReadiness.missingPreferences}
+                      icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+                      highlight={prefReadiness.missingPreferences > 0}
+                    />
+                    <IntakeStatBlock
+                      label="Unresolved Conflicts"
+                      value={prefReadiness.unresolvedConflicts}
+                      icon={<AlertTriangle className="h-4 w-4 text-red-500" />}
+                      highlight={prefReadiness.unresolvedConflicts > 0}
+                    />
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Visit <a href="/dashboard/coordinator/project-topics" className="underline underline-offset-2 font-medium text-foreground">Project Topics</a> to
+                    manage the topic catalogue, review demand, and recalculate selection conflicts.
+                  </p>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* ── Section 5: Formation batches ── */}
           <section>
             <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
               <Layers className="h-4 w-4 text-muted-foreground" />

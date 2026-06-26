@@ -123,7 +123,7 @@ DRAFT → SUBMITTED → (NEEDS_REVIEW if flagged)
 
 | Part | What it Uses |
 |------|-------------|
-| **Part 4** — Project Topic Preferences | Domain preferences inform project interest scoring |
+| **Part 4** — Project Topic Preferences (done) | Skills used in SKILL_GAP conflict detection for interested topics; Domain preferences inform project interest; Student profiles are queried in `recalculateConflicts` to check skill coverage |
 | **Part 5** — Formation Engine | Skills → skill coverage scoring; Availability → schedule overlap scoring; Roles → role suitability scoring; Capacity → capacity balance scoring; Support preferences → support compatibility scoring |
 | **Part 6** — Coordinator Formation Workspace | Aggregate profile readiness counts per batch |
 | **Part 8** — Task Allocation Engine | Weekly capacity hours + max concurrent tasks for fair work distribution; support preferences for task structuring guidance |

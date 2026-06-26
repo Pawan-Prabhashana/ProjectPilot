@@ -209,6 +209,45 @@ enum SignalSeverity {
 
 // Lifecycle of an academic term used to scope formation batches
 // =============================================================================
+// PART 4 — PROJECT TOPIC CATALOGUE ENUMS
+// =============================================================================
+
+enum ProjectTopicStatus {
+  DRAFT
+  OPEN
+  CLOSED
+  ARCHIVED
+}
+
+enum ProjectTopicDifficulty {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+enum ProjectPreferenceStatus {
+  DRAFT
+  SUBMITTED
+}
+
+enum ProjectSelectionConflictType {
+  OVER_SELECTED
+  UNDER_SELECTED
+  NO_INTEREST
+  SKILL_GAP
+  STUDENT_MISSING_PREFERENCES
+  CAPACITY_EXCEEDED
+}
+
+enum ProjectSelectionConflictSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// =============================================================================
 // PART 3 — STUDENT FORMATION PROFILE ENUMS
 // =============================================================================
 
@@ -402,6 +441,9 @@ model User {
 
   // Formation batches created by this user (coordinators)
   createdFormationBatches FormationBatch[] @relation("FormationBatchCreator")
+
+  // Project topics created by this user (coordinators/supervisors)
+  createdProjectTopics ProjectTopic[] @relation("ProjectTopicCreator")
 }
 
 // =============================================================================
@@ -417,11 +459,13 @@ model StudentProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cognitiveProfile CognitiveProfile?
-  teamMemberships  TeamMember[]
-  intakeRecords    StudentIntake[]
-  formationProfile StudentFormationProfile?
+  user                      User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cognitiveProfile          CognitiveProfile?
+  teamMemberships           TeamMember[]
+  intakeRecords             StudentIntake[]
+  formationProfile          StudentFormationProfile?
+  projectPreferences        ProjectPreference[]
+  projectSelectionConflicts ProjectSelectionConflict[]
 }
 
 model SupervisorProfile {
@@ -436,6 +480,7 @@ model SupervisorProfile {
   user            User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
   supervisedTeams Team[]                     @relation("TeamSupervisor")
   availability    ConsultationAvailability[]
+  projectTopics   ProjectTopic[]
 }
 
 model CoordinatorProfile {
@@ -1142,9 +1187,12 @@ model AcademicTerm {
   createdAt     DateTime           @default(now())
   updatedAt     DateTime           @updatedAt
 
-  studentIntakes   StudentIntake[]
-  formationBatches FormationBatch[]
-  teams            Team[]
+  studentIntakes            StudentIntake[]
+  formationBatches          FormationBatch[]
+  teams                     Team[]
+  projectTopics             ProjectTopic[]
+  projectPreferences        ProjectPreference[]
+  projectSelectionConflicts ProjectSelectionConflict[]
 }
 
 // One row per student per academic term. Tracks intake status through the formation pipeline.
@@ -1339,4 +1387,102 @@ model StudentRolePreference {
   @@index([profileId])
   @@index([roleKey])
   @@index([avoid])
+}
+
+// =============================================================================
+// PART 4 — PROJECT TOPIC CATALOGUE MODELS
+// =============================================================================
+
+// A coordinator/supervisor-defined project topic available for a term.
+// This is NOT the same as the operational Project model — it is a pre-formation
+// catalogue item. Part 5/6 may link or convert a ProjectTopic to a real Project.
+model ProjectTopic {
+  id                  String                 @id @default(cuid())
+  termId              String
+  supervisorProfileId String?
+  title               String
+  slug                String
+  description         String                 @db.Text
+  domain              String?
+  difficulty          ProjectTopicDifficulty @default(MEDIUM)
+  status              ProjectTopicStatus     @default(DRAFT)
+  minTeams            Int                    @default(0)
+  maxTeams            Int                    @default(1)
+  maxStudents         Int?
+  // JSON arrays of skill keys, e.g. ["backend", "database"]
+  requiredSkills      Json?
+  preferredSkills     Json?
+  deliverables        Json?
+  tags                Json?
+  createdById         String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+
+  term              AcademicTerm               @relation(fields: [termId], references: [id], onDelete: Cascade)
+  supervisorProfile SupervisorProfile?         @relation(fields: [supervisorProfileId], references: [id], onDelete: SetNull)
+  createdBy         User?                      @relation("ProjectTopicCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  preferences       ProjectPreference[]
+  conflicts         ProjectSelectionConflict[]
+
+  @@unique([termId, slug])
+  @@index([termId])
+  @@index([supervisorProfileId])
+  @@index([status])
+  @@index([difficulty])
+}
+
+// A student's ranked preference for a project topic within a term.
+// Students can save drafts before submitting. Once submitted, they can
+// update and re-submit. Coordinators see aggregate demand only.
+model ProjectPreference {
+  id               String                  @id @default(cuid())
+  termId           String
+  studentProfileId String
+  topicId          String
+  rank             Int
+  status           ProjectPreferenceStatus @default(DRAFT)
+  motivation       String?                 @db.Text
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
+
+  term           AcademicTerm   @relation(fields: [termId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  topic          ProjectTopic   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+
+  @@unique([termId, studentProfileId, rank])
+  @@unique([termId, studentProfileId, topicId])
+  @@index([termId])
+  @@index([studentProfileId])
+  @@index([topicId])
+  @@index([status])
+  @@index([rank])
+}
+
+// A detected conflict in project topic selection for a term.
+// Recalculated deterministically by the conflict detection service.
+// Coordinators use these to resolve demand imbalances before formation.
+model ProjectSelectionConflict {
+  id               String                           @id @default(cuid())
+  termId           String
+  topicId          String?
+  studentProfileId String?
+  type             ProjectSelectionConflictType
+  severity         ProjectSelectionConflictSeverity @default(MEDIUM)
+  title            String
+  message          String                           @db.Text
+  metadata         Json?
+  resolved         Boolean                          @default(false)
+  createdAt        DateTime                         @default(now())
+  updatedAt        DateTime                         @updatedAt
+
+  term           AcademicTerm    @relation(fields: [termId], references: [id], onDelete: Cascade)
+  topic          ProjectTopic?   @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile? @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@index([termId])
+  @@index([topicId])
+  @@index([studentProfileId])
+  @@index([type])
+  @@index([severity])
+  @@index([resolved])
 }
