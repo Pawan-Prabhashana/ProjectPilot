@@ -248,6 +248,54 @@ enum ProjectSelectionConflictSeverity {
 }
 
 // =============================================================================
+// PART 5 — TEAM FORMATION ENGINE ENUMS
+// =============================================================================
+
+// Lifecycle of a single deterministic team-formation run.
+enum TeamFormationRunStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  FAILED
+  ARCHIVED
+}
+
+// Status of a draft (pre-approval) team produced by the engine.
+// These are NOT operational teams — Part 6 approves/publishes them.
+enum DraftTeamStatus {
+  DRAFT
+  NEEDS_REVIEW
+  READY
+  LOCKED
+}
+
+// Categories of warning the engine can raise at run/team/student/topic level.
+enum FormationWarningType {
+  MISSING_CRITICAL_SKILL
+  WEAK_SKILL_COVERAGE
+  NO_CLEAR_LEADER
+  SCHEDULE_CONFLICT
+  CAPACITY_IMBALANCE
+  PROJECT_OVER_SELECTED
+  TOPIC_SKILL_GAP
+  STUDENT_UNASSIGNED
+  TEAM_SIZE_OUT_OF_RANGE
+  SUPERVISOR_CAPACITY_RISK
+  SUPPORT_COMPATIBILITY_RISK
+  LOW_PREFERENCE_MATCH
+  DUPLICATE_TOPIC_PRESSURE
+  INCOMPLETE_STUDENT_PROFILE
+}
+
+enum FormationWarningSeverity {
+  INFO
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+// =============================================================================
 // PART 3 — STUDENT FORMATION PROFILE ENUMS
 // =============================================================================
 
@@ -444,6 +492,9 @@ model User {
 
   // Project topics created by this user (coordinators/supervisors)
   createdProjectTopics ProjectTopic[] @relation("ProjectTopicCreator")
+
+  // Team formation runs created by this user (coordinators)
+  createdTeamFormationRuns TeamFormationRun[] @relation("TeamFormationRunCreator")
 }
 
 // =============================================================================
@@ -466,6 +517,8 @@ model StudentProfile {
   formationProfile          StudentFormationProfile?
   projectPreferences        ProjectPreference[]
   projectSelectionConflicts ProjectSelectionConflict[]
+  draftTeamMemberships      DraftTeamMember[]
+  draftTeamWarnings         DraftTeamWarning[]
 }
 
 model SupervisorProfile {
@@ -481,6 +534,7 @@ model SupervisorProfile {
   supervisedTeams Team[]                     @relation("TeamSupervisor")
   availability    ConsultationAvailability[]
   projectTopics   ProjectTopic[]
+  draftTeams      DraftTeam[]
 }
 
 model CoordinatorProfile {
@@ -1193,6 +1247,8 @@ model AcademicTerm {
   projectTopics             ProjectTopic[]
   projectPreferences        ProjectPreference[]
   projectSelectionConflicts ProjectSelectionConflict[]
+  teamFormationRuns         TeamFormationRun[]
+  draftTeams                DraftTeam[]
 }
 
 // One row per student per academic term. Tracks intake status through the formation pipeline.
@@ -1208,9 +1264,10 @@ model StudentIntake {
   createdAt        DateTime            @default(now())
   updatedAt        DateTime            @updatedAt
 
-  term             AcademicTerm            @relation(fields: [termId], references: [id], onDelete: Cascade)
-  studentProfile   StudentProfile          @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
-  batchMemberships FormationBatchStudent[]
+  term                 AcademicTerm            @relation(fields: [termId], references: [id], onDelete: Cascade)
+  studentProfile       StudentProfile          @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  batchMemberships     FormationBatchStudent[]
+  draftTeamMemberships DraftTeamMember[]
 
   @@unique([termId, studentProfileId])
   @@index([termId])
@@ -1236,9 +1293,11 @@ model FormationBatch {
   term      AcademicTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
   createdBy User?        @relation("FormationBatchCreator", fields: [createdById], references: [id], onDelete: SetNull)
 
-  students FormationBatchStudent[]
-  ruleSet  FormationRuleSet?
-  teams    Team[]
+  students          FormationBatchStudent[]
+  ruleSet           FormationRuleSet?
+  teams             Team[]
+  teamFormationRuns TeamFormationRun[]
+  draftTeams        DraftTeam[]
 
   @@index([termId])
   @@index([status])
@@ -1423,6 +1482,8 @@ model ProjectTopic {
   createdBy         User?                      @relation("ProjectTopicCreator", fields: [createdById], references: [id], onDelete: SetNull)
   preferences       ProjectPreference[]
   conflicts         ProjectSelectionConflict[]
+  draftTeams        DraftTeam[]
+  draftTeamWarnings DraftTeamWarning[]
 
   @@unique([termId, slug])
   @@index([termId])
@@ -1482,6 +1543,150 @@ model ProjectSelectionConflict {
   @@index([termId])
   @@index([topicId])
   @@index([studentProfileId])
+  @@index([type])
+  @@index([severity])
+  @@index([resolved])
+}
+
+// =============================================================================
+// PART 5 — TEAM FORMATION ENGINE (DRAFT RESULTS)
+//
+// These models persist the output of the deterministic team-formation engine.
+// They are pre-approval "what-if" results ONLY. They never modify or replace the
+// operational Team / TeamMember / Project models. Part 6 will let coordinators
+// review, adjust, approve, and publish drafts into real operational teams.
+//
+// Privacy note: the engine reads ONLY operational data and the safe,
+// non-diagnostic StudentFormationProfile.safeSupportPreferences signal. It never
+// reads CognitiveProfile or privateSupportNotes, and never stores raw support
+// preference JSON in coordinator-facing fields.
+// =============================================================================
+
+// One execution of the deterministic engine for a formation batch.
+model TeamFormationRun {
+  id               String                 @id @default(cuid())
+  termId           String
+  batchId          String
+  status           TeamFormationRunStatus @default(QUEUED)
+  algorithmVersion String                 @default("deterministic-v1")
+  createdById      String?
+  startedAt        DateTime?
+  completedAt      DateTime?
+  failedAt         DateTime?
+  failureReason    String?                @db.Text
+  settingsSnapshot Json?
+  summary          Json?
+  createdAt        DateTime               @default(now())
+  updatedAt        DateTime               @updatedAt
+
+  term       AcademicTerm       @relation(fields: [termId], references: [id], onDelete: Cascade)
+  batch      FormationBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdBy  User?              @relation("TeamFormationRunCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  draftTeams DraftTeam[]
+  members    DraftTeamMember[]
+  warnings   DraftTeamWarning[]
+
+  @@index([termId])
+  @@index([batchId])
+  @@index([status])
+  @@index([createdById])
+}
+
+// A draft team suggested by the engine. Pre-approval only.
+model DraftTeam {
+  id                        String          @id @default(cuid())
+  runId                     String
+  termId                    String
+  batchId                   String
+  topicId                   String?
+  supervisorProfileId       String?
+  name                      String
+  status                    DraftTeamStatus @default(DRAFT)
+  overallScore              Int             @default(0)
+  skillScore                Int             @default(0)
+  scheduleScore             Int             @default(0)
+  roleScore                 Int             @default(0)
+  preferenceScore           Int             @default(0)
+  capacityScore             Int             @default(0)
+  supportCompatibilityScore Int             @default(0)
+  supervisorCapacityScore   Int             @default(0)
+  explanation               String?         @db.Text
+  metadata                  Json?
+  createdAt                 DateTime        @default(now())
+  updatedAt                 DateTime        @updatedAt
+
+  run               TeamFormationRun   @relation(fields: [runId], references: [id], onDelete: Cascade)
+  term              AcademicTerm       @relation(fields: [termId], references: [id], onDelete: Cascade)
+  batch             FormationBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  topic             ProjectTopic?      @relation(fields: [topicId], references: [id], onDelete: SetNull)
+  supervisorProfile SupervisorProfile? @relation(fields: [supervisorProfileId], references: [id], onDelete: SetNull)
+  members           DraftTeamMember[]
+  warnings          DraftTeamWarning[]
+
+  @@index([runId])
+  @@index([termId])
+  @@index([batchId])
+  @@index([topicId])
+  @@index([supervisorProfileId])
+  @@index([status])
+  @@index([overallScore])
+}
+
+// A suggested member placement within a draft team, with a suggested role.
+model DraftTeamMember {
+  id                 String   @id @default(cuid())
+  runId              String
+  draftTeamId        String
+  studentIntakeId    String
+  studentProfileId   String
+  suggestedRoleKey   String?
+  suggestedRoleLabel String?
+  roleConfidence     Int      @default(0)
+  fitScore           Int      @default(0)
+  explanation        String?  @db.Text
+  metadata           Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  run            TeamFormationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  draftTeam      DraftTeam        @relation(fields: [draftTeamId], references: [id], onDelete: Cascade)
+  studentIntake  StudentIntake    @relation(fields: [studentIntakeId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile   @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, studentProfileId])
+  @@unique([draftTeamId, studentProfileId])
+  @@index([runId])
+  @@index([draftTeamId])
+  @@index([studentIntakeId])
+  @@index([studentProfileId])
+  @@index([suggestedRoleKey])
+}
+
+// A warning raised by the engine, attachable at run/team/student/topic level.
+model DraftTeamWarning {
+  id               String                   @id @default(cuid())
+  runId            String
+  draftTeamId      String?
+  studentProfileId String?
+  topicId          String?
+  type             FormationWarningType
+  severity         FormationWarningSeverity @default(MEDIUM)
+  title            String
+  message          String                   @db.Text
+  metadata         Json?
+  resolved         Boolean                  @default(false)
+  createdAt        DateTime                 @default(now())
+  updatedAt        DateTime                 @updatedAt
+
+  run            TeamFormationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+  draftTeam      DraftTeam?       @relation(fields: [draftTeamId], references: [id], onDelete: Cascade)
+  studentProfile StudentProfile?  @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  topic          ProjectTopic?    @relation(fields: [topicId], references: [id], onDelete: SetNull)
+
+  @@index([runId])
+  @@index([draftTeamId])
+  @@index([studentProfileId])
+  @@index([topicId])
   @@index([type])
   @@index([severity])
   @@index([resolved])

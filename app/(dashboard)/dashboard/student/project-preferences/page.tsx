@@ -62,23 +62,32 @@ export default function StudentProjectPreferencesPage() {
         fetch('/api/project-topics'),
         fetch('/api/project-preferences'),
       ]);
-      if (!topicsRes.ok || !prefsRes.ok) throw new Error();
+
+      // Topics are critical — if this fails, show error state
+      if (!topicsRes.ok) {
+        const errBody = await topicsRes.json().catch(() => ({}));
+        const msg = (errBody as { message?: string }).message ?? 'Could not load topics.';
+        showToast('error', msg + ' Please refresh.');
+        return;
+      }
 
       const topicsData = await topicsRes.json();
-      const prefsData  = await prefsRes.json();
-
       setTopics(topicsData.topics ?? []);
       setTerm(topicsData.term ?? null);
 
-      const savedPrefs: StudentPreference[] = prefsData.preferences ?? [];
-      const ranked: RankedPreference[] = savedPrefs.map(p => ({
-        topicId: p.topicId, rank: p.rank, motivation: p.motivation ?? '', topic: p.topic,
-      })).sort((a, b) => a.rank - b.rank);
-
-      setPreferences(ranked);
-      setSubmitted(savedPrefs.length > 0 && savedPrefs.every(p => p.status === 'SUBMITTED'));
-    } catch {
-      showToast('error', 'Could not load topics. Please refresh.');
+      // Preferences — load if possible, silently ignore failure (page still works for browsing)
+      if (prefsRes.ok) {
+        const prefsData = await prefsRes.json();
+        const savedPrefs: StudentPreference[] = prefsData.preferences ?? [];
+        const ranked: RankedPreference[] = savedPrefs.map(p => ({
+          topicId: p.topicId, rank: p.rank, motivation: p.motivation ?? '', topic: p.topic,
+        })).sort((a, b) => a.rank - b.rank);
+        setPreferences(ranked);
+        setSubmitted(savedPrefs.length > 0 && savedPrefs.every(p => p.status === 'SUBMITTED'));
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'Could not load topics.';
+      showToast('error', msg + ' Please refresh.');
     } finally {
       setLoading(false);
     }

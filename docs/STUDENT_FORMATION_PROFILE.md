@@ -124,7 +124,7 @@ DRAFT → SUBMITTED → (NEEDS_REVIEW if flagged)
 | Part | What it Uses |
 |------|-------------|
 | **Part 4** — Project Topic Preferences (done) | Skills used in SKILL_GAP conflict detection for interested topics; Domain preferences inform project interest; Student profiles are queried in `recalculateConflicts` to check skill coverage |
-| **Part 5** — Formation Engine | Skills → skill coverage scoring; Availability → schedule overlap scoring; Roles → role suitability scoring; Capacity → capacity balance scoring; Support preferences → support compatibility scoring |
+| **Part 5** — Formation Engine (done) | Skills → skill coverage scoring + gap warnings; Availability → schedule overlap scoring + `SCHEDULE_CONFLICT`; Roles → one suggested primary role per student + `NO_CLEAR_LEADER`; Capacity → capacity balance scoring + `CAPACITY_IMBALANCE`; **only** `safeSupportPreferences` → support-compatibility scoring and generic team-routine hints (never `privateSupportNotes`, never `CognitiveProfile`). See `docs/TEAM_FORMATION_ENGINE.md` |
 | **Part 6** — Coordinator Formation Workspace | Aggregate profile readiness counts per batch |
 | **Part 8** — Task Allocation Engine | Weekly capacity hours + max concurrent tasks for fair work distribution; support preferences for task structuring guidance |
 
