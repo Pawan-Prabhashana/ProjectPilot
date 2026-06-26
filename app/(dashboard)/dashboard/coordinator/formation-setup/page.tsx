@@ -10,6 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { HealthBadge } from '@/components/shared/health-badge';
 import { Progress } from '@/components/ui/progress';
+import Link from 'next/link';
 import {
   Calendar,
   Users,
@@ -21,6 +22,8 @@ import {
   BookOpen,
   BarChart3,
   FileText,
+  GitMerge,
+  ArrowRight,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TeamHealthStatus } from '@prisma/client';
@@ -274,6 +277,28 @@ export default async function FormationSetupPage() {
 
           {/* ── Section 4b: Formation engine preview (Part 5) ── */}
           <FormationEnginePreview />
+
+          {/* ── Section 4c: Team Formation Workspace link (Part 6) ── */}
+          <section>
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-emerald-200 bg-emerald-50/40 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <GitMerge className="h-5 w-5 text-emerald-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-emerald-800">Team Formation Workspace</p>
+                  <p className="text-xs text-emerald-700 mt-0.5">
+                    Review draft teams, make manual adjustments, and publish operational teams from
+                    the formation engine results.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/coordinator/team-formation"
+                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-700 transition-colors shrink-0"
+              >
+                Go to Workspace <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </section>
 
           {/* ── Section 5: Formation batches ── */}
           <section>

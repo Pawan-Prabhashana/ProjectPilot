@@ -222,16 +222,22 @@ they never change `FormationBatchStudent.status` or `StudentIntake.status`.
 
 ---
 
-## 12. What Part 6 will add
+## 12. What Part 6 added
 
-Part 6 builds the full coordinator formation workspace on top of these drafts:
+Part 6 built the full coordinator formation workspace on top of these drafts. It is now live at
+`/dashboard/coordinator/team-formation`. Key capabilities:
 
-- **Review** runs and draft teams in a dedicated workspace (not the minimal preview).
-- **Manual adjustment** — drag/drop members between teams, override topic/role/supervisor.
-- **Supervisor allocation** — assign supervisors to teams with capacity awareness.
-- **Approval & publishing** — convert approved drafts into real `Team` / `TeamMember` / `Project`
-  records, link them to the term/batch, update `FormationBatchStudent.status = ASSIGNED` and
-  `StudentIntake.status = ASSIGNED_TO_TEAM`, and move `FormationBatch.status` `APPROVED → PUBLISHED`.
+- **Review** — full run summary, draft team cards with scores, members, warnings, and engine explanations.
+- **Filtering** — All / Needs Review / Ready / Has Warnings.
+- **Manual adjustment** — rename teams, change status, change member role, move members between teams.
+- **Readiness checklist** — per-team validation before publish.
+- **Approval & publishing** — transactional conversion of approved drafts into real `Team` / `TeamMember` /
+  `Project` records, updating `StudentIntake.status = ASSIGNED_TO_TEAM`, `FormationBatchStudent.status = ASSIGNED`,
+  `FormationBatch.status = PUBLISHED`, and `TeamFormationRun.publishedAt / publishedById`.
+- **Duplicate publish prevention** — blocked if `Team.sourceDraftTeamId` already exists for any draft team
+  in the run, or if `TeamFormationRun.publishedAt` is set.
+
+See `docs/COORDINATOR_FORMATION_WORKSPACE.md` for full documentation.
 
 ---
 

@@ -23,6 +23,7 @@ import {
   TrendingUp,
   Bell,
   Layers,
+  GitMerge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -224,6 +225,13 @@ const navItems: NavItem[] = [
     icon: BookOpen,
     roles: ['COORDINATOR'],
     description: 'Catalogue, demand, and selection conflicts',
+  },
+  {
+    href: '/dashboard/coordinator/team-formation',
+    label: 'Team Formation',
+    icon: GitMerge,
+    roles: ['COORDINATOR'],
+    description: 'Review, adjust, and publish draft teams',
   },
   {
     href: '/dashboard/consultations',

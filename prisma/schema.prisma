@@ -495,6 +495,9 @@ model User {
 
   // Team formation runs created by this user (coordinators)
   createdTeamFormationRuns TeamFormationRun[] @relation("TeamFormationRunCreator")
+
+  // Team formation runs published by this user (coordinators)
+  publishedTeamFormationRuns TeamFormationRun[] @relation("TeamFormationRunPublisher")
 }
 
 // =============================================================================
@@ -639,20 +642,23 @@ model AccessibilitySetting {
 // =============================================================================
 
 model Team {
-  id               String           @id @default(cuid())
-  name             String
-  slug             String           @unique
-  healthStatus     TeamHealthStatus @default(ON_TRACK)
-  supervisorId     String?
+  id                String           @id @default(cuid())
+  name              String
+  slug              String           @unique
+  healthStatus      TeamHealthStatus @default(ON_TRACK)
+  supervisorId      String?
   // Optional links to the academic term and formation batch that produced this team
-  academicTermId   String?
-  formationBatchId String?
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  academicTermId    String?
+  formationBatchId  String?
+  // Source draft team — set when published from the formation workspace (Part 6)
+  sourceDraftTeamId String?          @unique
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  supervisor     SupervisorProfile? @relation("TeamSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
-  academicTerm   AcademicTerm?      @relation(fields: [academicTermId], references: [id], onDelete: SetNull)
-  formationBatch FormationBatch?    @relation(fields: [formationBatchId], references: [id], onDelete: SetNull)
+  supervisor      SupervisorProfile? @relation("TeamSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  academicTerm    AcademicTerm?      @relation(fields: [academicTermId], references: [id], onDelete: SetNull)
+  formationBatch  FormationBatch?    @relation(fields: [formationBatchId], references: [id], onDelete: SetNull)
+  sourceDraftTeam DraftTeam?         @relation("DraftTeamPublishedTeam", fields: [sourceDraftTeamId], references: [id], onDelete: SetNull)
 
   members              TeamMember[]
   project              Project?
@@ -667,6 +673,7 @@ model Team {
   @@index([healthStatus])
   @@index([academicTermId])
   @@index([formationBatchId])
+  @@index([sourceDraftTeamId])
 }
 
 // A student's membership in a team. One student can technically be a member
@@ -1570,6 +1577,9 @@ model TeamFormationRun {
   status           TeamFormationRunStatus @default(QUEUED)
   algorithmVersion String                 @default("deterministic-v1")
   createdById      String?
+  publishedAt      DateTime?
+  publishedById    String?
+  publishSummary   Json?
   startedAt        DateTime?
   completedAt      DateTime?
   failedAt         DateTime?
@@ -1579,17 +1589,19 @@ model TeamFormationRun {
   createdAt        DateTime               @default(now())
   updatedAt        DateTime               @updatedAt
 
-  term       AcademicTerm       @relation(fields: [termId], references: [id], onDelete: Cascade)
-  batch      FormationBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
-  createdBy  User?              @relation("TeamFormationRunCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  draftTeams DraftTeam[]
-  members    DraftTeamMember[]
-  warnings   DraftTeamWarning[]
+  term        AcademicTerm       @relation(fields: [termId], references: [id], onDelete: Cascade)
+  batch       FormationBatch     @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdBy   User?              @relation("TeamFormationRunCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  publishedBy User?              @relation("TeamFormationRunPublisher", fields: [publishedById], references: [id], onDelete: SetNull)
+  draftTeams  DraftTeam[]
+  members     DraftTeamMember[]
+  warnings    DraftTeamWarning[]
 
   @@index([termId])
   @@index([batchId])
   @@index([status])
   @@index([createdById])
+  @@index([publishedById])
 }
 
 // A draft team suggested by the engine. Pre-approval only.
@@ -1622,6 +1634,7 @@ model DraftTeam {
   supervisorProfile SupervisorProfile? @relation(fields: [supervisorProfileId], references: [id], onDelete: SetNull)
   members           DraftTeamMember[]
   warnings          DraftTeamWarning[]
+  publishedTeam     Team?              @relation("DraftTeamPublishedTeam")
 
   @@index([runId])
   @@index([termId])
