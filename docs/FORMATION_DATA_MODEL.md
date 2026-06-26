@@ -230,6 +230,33 @@ new models or columns. Publishing (Part 6) is unchanged: `team_leader → LEADER
 
 See `docs/ROLE_SUITABILITY_ENGINE.md` for the catalogue, formula, and warnings.
 
+### Part 8 — Capacity-Aware Task Allocation (done)
+
+Part 8 adds task-level allocation, reusing `Task` rather than introducing a parallel model:
+
+- **`Task`**: five new optional columns — `requiredSkills Json?` (array of skill keys, same keys as
+  `StudentSkill.key`), `suggestedRoleKey String?` (role catalogue key from Part 7), `allocationRationale
+  String? @db.Text` (human-readable explanation, set only when a recommendation is applied),
+  `allocationScore Json?` (the full score breakdown that was applied), `allocationUpdatedAt DateTime?`.
+  All five are additive and nullable — existing tasks and the existing create/edit flow are unaffected
+  if a recommendation is never used.
+- **`TaskAllocationRecommendation`** (new model) — an audit-trail row created whenever a recommendation
+  is applied (`accepted: true`) or, optionally, surfaced for review. Mirrors the `DraftTeamWarning`
+  sibling-table pattern: it points at the `Task` (`SetNull` on delete, so deleting a task doesn't lose
+  the audit history), `Team`, `Project`, and the recommended `User`/`StudentProfile`, and stores the six
+  sub-scores (`skillScore`, `roleScore`, `capacityScore`, `currentLoadScore`, `dueDateScore`,
+  `supportFitScore`), the overall `score`, `rationale`, and `metadata`.
+
+Existing models updated for Part 8 (new relations only):
+- `Task` — `allocationRecommendations`
+- `Team`, `Project`, `User`, `StudentProfile` — `taskAllocationRecommendations`
+
+The allocation engine (`lib/services/tasks/task-allocation.ts`) reads `StudentFormationProfile.skills`,
+`.weeklyCapacityHours`, `.maxConcurrentTasks`, and `.safeSupportPreferences`, the published role from
+`Team.sourceDraftTeam.members` (falling back to the student's top non-avoided `StudentRolePreference`),
+and active (`TODO`/`IN_PROGRESS`/`REVIEW`) task counts/hours per member. It never reads
+`CognitiveProfile` or `privateSupportNotes`. Full detail in `docs/CAPACITY_AWARE_TASK_ALLOCATION.md`.
+
 ---
 
 ## 5. Privacy Note

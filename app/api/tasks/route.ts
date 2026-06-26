@@ -1,10 +1,23 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth/session';
-import { prisma } from '@/lib/db';
+import { prisma, Prisma } from '@/lib/db';
 import { z } from 'zod';
 import { checkTaskAmbiguity } from '@/lib/services/task-intelligence';
 import { createEvent } from '@/lib/events/create-event';
 import { EVENT_TYPES } from '@/lib/events/types';
+
+const allocationScoreSchema = z.object({
+  score: z.number(),
+  skillScore: z.number(),
+  roleScore: z.number(),
+  capacityScore: z.number(),
+  currentLoadScore: z.number(),
+  dueDateScore: z.number(),
+  supportFitScore: z.number(),
+  riskLevel: z.enum(['LOW', 'MEDIUM', 'HIGH']),
+  reasons: z.array(z.string()),
+  warnings: z.array(z.string()),
+}).passthrough();
 
 const createTaskSchema = z.object({
   projectId: z.string().min(1),
@@ -19,6 +32,11 @@ const createTaskSchema = z.object({
   dueDate: z.string().nullable().optional(),
   estimatedMinutes: z.number().int().min(1).max(14400).nullable().optional(),
   cognitiveLoad: z.number().int().min(1).max(5).nullable().optional(),
+  // Part 8: capacity-aware task allocation — all optional, additive.
+  requiredSkills: z.array(z.string()).max(12).nullable().optional(),
+  suggestedRoleKey: z.string().nullable().optional(),
+  // Present only when the creator applied an allocation recommendation.
+  appliedRecommendation: allocationScoreSchema.nullable().optional(),
 });
 
 export async function POST(req: Request) {
@@ -37,6 +55,7 @@ export async function POST(req: Request) {
   const {
     projectId, title, description, doneCriteria, blockerNote, status, priority,
     assigneeId, milestoneId, dueDate, estimatedMinutes, cognitiveLoad,
+    requiredSkills, suggestedRoleKey, appliedRecommendation,
   } = parsed.data;
 
   // Verify access: must be team member, supervisor of the team, or coordinator
@@ -45,7 +64,7 @@ export async function POST(req: Request) {
     include: {
       team: {
         include: {
-          members: { select: { userId: true } },
+          members: { select: { userId: true, profileId: true } },
           supervisor: { select: { userId: true } },
         },
       },
@@ -75,12 +94,46 @@ export async function POST(req: Request) {
       assigneeId: assigneeId ?? null,
       dueDate: dueDate ? new Date(dueDate) : null,
       estimatedMinutes: estimatedMinutes ?? null,
+      // Part 8: capacity-aware task allocation metadata, only set when provided.
+      requiredSkills: requiredSkills && requiredSkills.length > 0 ? (requiredSkills as Prisma.InputJsonValue) : Prisma.JsonNull,
+      suggestedRoleKey: suggestedRoleKey ?? null,
+      allocationRationale:
+        appliedRecommendation && assigneeId
+          ? buildAppliedRationale(appliedRecommendation)
+          : null,
+      allocationScore:
+        appliedRecommendation && assigneeId ? (appliedRecommendation as Prisma.InputJsonValue) : Prisma.JsonNull,
+      allocationUpdatedAt: appliedRecommendation && assigneeId ? new Date() : null,
     },
     select: {
       id: true, title: true, status: true, priority: true, dueDate: true,
       assigneeId: true, milestoneId: true,
     },
   });
+
+  // Audit trail: record the accepted recommendation, same as a post-creation "apply".
+  if (appliedRecommendation && assigneeId) {
+    const assigneeMembership = project.team.members.find((m) => m.userId === assigneeId);
+    await prisma.taskAllocationRecommendation.create({
+      data: {
+        taskId: task.id,
+        teamId: project.teamId,
+        projectId,
+        recommendedUserId: assigneeId,
+        recommendedStudentProfileId: assigneeMembership?.profileId ?? null,
+        score: appliedRecommendation.score,
+        skillScore: appliedRecommendation.skillScore,
+        roleScore: appliedRecommendation.roleScore,
+        capacityScore: appliedRecommendation.capacityScore,
+        currentLoadScore: appliedRecommendation.currentLoadScore,
+        dueDateScore: appliedRecommendation.dueDateScore,
+        supportFitScore: appliedRecommendation.supportFitScore,
+        rationale: buildAppliedRationale(appliedRecommendation),
+        metadata: { riskLevel: appliedRecommendation.riskLevel, warnings: appliedRecommendation.warnings } as Prisma.InputJsonValue,
+        accepted: true,
+      },
+    }).catch((err) => console.error('[tasks] allocation audit error:', err));
+  }
 
   // Fire events and check ambiguity in background — never fail the primary action
   await Promise.allSettled([
@@ -125,4 +178,12 @@ export async function POST(req: Request) {
   ]);
 
   return NextResponse.json({ task }, { status: 201 });
+}
+
+/** Builds a plain-text rationale string from an applied allocation recommendation. */
+function buildAppliedRationale(rec: z.infer<typeof allocationScoreSchema>): string {
+  const parts = [...rec.reasons];
+  if (rec.warnings.length > 0) parts.push(...rec.warnings.map((w) => `Caution: ${w}`));
+  parts.push(`Overall fit ${rec.score}/100 (risk: ${rec.riskLevel}).`);
+  return parts.join(' ');
 }

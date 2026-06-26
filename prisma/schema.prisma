@@ -503,6 +503,9 @@ model User {
 
   // Team formation runs published by this user (coordinators)
   publishedTeamFormationRuns TeamFormationRun[] @relation("TeamFormationRunPublisher")
+
+  // Task allocation recommendations naming this user as the candidate (Part 8)
+  taskAllocationRecommendations TaskAllocationRecommendation[]
 }
 
 // =============================================================================
@@ -518,15 +521,16 @@ model StudentProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user                      User                       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  cognitiveProfile          CognitiveProfile?
-  teamMemberships           TeamMember[]
-  intakeRecords             StudentIntake[]
-  formationProfile          StudentFormationProfile?
-  projectPreferences        ProjectPreference[]
-  projectSelectionConflicts ProjectSelectionConflict[]
-  draftTeamMemberships      DraftTeamMember[]
-  draftTeamWarnings         DraftTeamWarning[]
+  user                          User                           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  cognitiveProfile              CognitiveProfile?
+  teamMemberships               TeamMember[]
+  intakeRecords                 StudentIntake[]
+  formationProfile              StudentFormationProfile?
+  projectPreferences            ProjectPreference[]
+  projectSelectionConflicts     ProjectSelectionConflict[]
+  draftTeamMemberships          DraftTeamMember[]
+  taskAllocationRecommendations TaskAllocationRecommendation[]
+  draftTeamWarnings             DraftTeamWarning[]
 }
 
 model SupervisorProfile {
@@ -665,14 +669,15 @@ model Team {
   formationBatch  FormationBatch?    @relation(fields: [formationBatchId], references: [id], onDelete: SetNull)
   sourceDraftTeam DraftTeam?         @relation("DraftTeamPublishedTeam", fields: [sourceDraftTeamId], references: [id], onDelete: SetNull)
 
-  members              TeamMember[]
-  project              Project?
-  consultationBookings ConsultationBooking[]
-  healthSignals        TeamHealthSignal[]
-  workloadSnapshots    WorkloadSnapshot[]
-  frictionEvents       SocialFrictionEvent[]
-  activityLogs         ActivityLog[]
-  notifications        Notification[]
+  members                       TeamMember[]
+  project                       Project?
+  consultationBookings          ConsultationBooking[]
+  healthSignals                 TeamHealthSignal[]
+  workloadSnapshots             WorkloadSnapshot[]
+  frictionEvents                SocialFrictionEvent[]
+  activityLogs                  ActivityLog[]
+  notifications                 Notification[]
+  taskAllocationRecommendations TaskAllocationRecommendation[]
 
   @@index([supervisorId])
   @@index([healthStatus])
@@ -710,11 +715,12 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  team                       Team                        @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  milestones                 Milestone[]
-  tasks                      Task[]
-  contributionLogs           ContributionLog[]
-  contributionTypeBreakdowns ContributionTypeBreakdown[]
+  team                          Team                           @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  milestones                    Milestone[]
+  tasks                         Task[]
+  contributionLogs              ContributionLog[]
+  contributionTypeBreakdowns    ContributionTypeBreakdown[]
+  taskAllocationRecommendations TaskAllocationRecommendation[]
 
   // Project Brain
   decisionLogs      DecisionLog[]
@@ -773,14 +779,27 @@ model Task {
   createdAt        DateTime      @default(now())
   updatedAt        DateTime      @updatedAt
 
-  project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  milestone     Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  assignee      User?              @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
-  decomposition TaskDecomposition?
+  // --- Part 8: capacity-aware task allocation (additive, all optional) ---
+  // Skill keys this task needs, e.g. ["backend", "database"]. Set by the
+  // creator; used to score candidate assignees. Never derived from CognitiveProfile.
+  requiredSkills      Json?
+  // Deterministically inferred from requiredSkills via the Part 7 role catalogue.
+  suggestedRoleKey    String?
+  // Plain-text "why this assignee" explanation, recorded when a recommendation is applied.
+  allocationRationale String?   @db.Text
+  // Score breakdown of the accepted recommendation at assignment time.
+  allocationScore     Json?
+  allocationUpdatedAt DateTime?
+
+  project                   Project                        @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone                 Milestone?                     @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  assignee                  User?                          @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  decomposition             TaskDecomposition?
   // Dependencies where this task is the "source" (this task depends on others)
-  outgoingDeps  DependencyLink[]   @relation("SourceTask")
+  outgoingDeps              DependencyLink[]               @relation("SourceTask")
   // Dependencies where this task is the "target" (other tasks depend on this)
-  incomingDeps  DependencyLink[]   @relation("TargetTask")
+  incomingDeps              DependencyLink[]               @relation("TargetTask")
+  allocationRecommendations TaskAllocationRecommendation[]
 
   @@index([projectId])
   @@index([milestoneId])
@@ -1708,4 +1727,49 @@ model DraftTeamWarning {
   @@index([type])
   @@index([severity])
   @@index([resolved])
+}
+
+// =============================================================================
+// PART 8 — CAPACITY-AWARE TASK ALLOCATION
+//
+// An audit record of a deterministic task-assignment recommendation. Recorded
+// only when a human accepts a recommendation (at task creation or reassignment)
+// — recommendations are never silently auto-applied. This is NOT a live
+// scoring cache; live recommendations are computed on demand by
+// lib/services/tasks/task-allocation.ts and only persisted here once accepted.
+//
+// Privacy: never stores CognitiveProfile or privateSupportNotes data.
+// =============================================================================
+model TaskAllocationRecommendation {
+  id                          String   @id @default(cuid())
+  taskId                      String?
+  teamId                      String
+  projectId                   String?
+  recommendedUserId           String?
+  recommendedStudentProfileId String?
+  score                       Int      @default(0)
+  skillScore                  Int      @default(0)
+  roleScore                   Int      @default(0)
+  capacityScore               Int      @default(0)
+  currentLoadScore            Int      @default(0)
+  dueDateScore                Int      @default(0)
+  supportFitScore             Int      @default(0)
+  rationale                   String?  @db.Text
+  metadata                    Json?
+  accepted                    Boolean  @default(false)
+  createdAt                   DateTime @default(now())
+  updatedAt                   DateTime @updatedAt
+
+  task                      Task?           @relation(fields: [taskId], references: [id], onDelete: SetNull)
+  team                      Team            @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  project                   Project?        @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  recommendedUser           User?           @relation(fields: [recommendedUserId], references: [id], onDelete: SetNull)
+  recommendedStudentProfile StudentProfile? @relation(fields: [recommendedStudentProfileId], references: [id], onDelete: SetNull)
+
+  @@index([taskId])
+  @@index([teamId])
+  @@index([projectId])
+  @@index([recommendedUserId])
+  @@index([recommendedStudentProfileId])
+  @@index([accepted])
 }

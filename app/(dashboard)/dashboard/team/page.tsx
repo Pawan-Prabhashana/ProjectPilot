@@ -4,16 +4,18 @@ import { requireAuth } from '@/lib/rbac';
 import { getWorkspaceSnapshot } from '@/lib/services/workspace';
 import { buildTeamIntelligenceDashboard } from '@/lib/services/team-intelligence';
 import { resolveActiveWorkspace } from '@/lib/services/workspace-access';
+import { getTeamWorkloadOverview } from '@/lib/services/tasks/task-allocation';
 import { PageHeader } from '@/components/shared/page-header';
 import { HealthBadge } from '@/components/shared/health-badge';
 import { EmptyState } from '@/components/shared/empty-state';
 import { Progress } from '@/components/ui/progress';
 import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import {
   Users, AlertTriangle, CheckCircle, Clock, Brain, Calendar,
   ArrowRight, Crown, User, Zap, Activity, Target, Lock, TrendingUp,
-  BarChart3, Lightbulb, GitBranch, MessageSquare,
+  BarChart3, Lightbulb, GitBranch, MessageSquare, Gauge,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { formatDate, formatDateTime } from '@/lib/utils';
@@ -68,10 +70,19 @@ export default async function TeamWorkspacePage({
     );
   }
 
-  const [snapshot, intelligence] = await Promise.all([
+  const [snapshot, intelligence, workloadOverview] = await Promise.all([
     getWorkspaceSnapshot(workspace.teamId, workspace.projectId),
     buildTeamIntelligenceDashboard(workspace.teamId),
+    getTeamWorkloadOverview(workspace.teamId),
   ]);
+
+  // Coordinators/supervisors/leaders see every member's capacity; a plain
+  // student member sees only their own row (same boundary as the existing
+  // team-insights workload view).
+  const canSeeFullWorkload = workspace.isLeader || workspace.isSupervisor || workspace.isCoordinator;
+  const visibleWorkloadMembers = canSeeFullWorkload
+    ? workloadOverview.members
+    : workloadOverview.members.filter((m) => m.userId === user.id);
 
   const completedMilestone = snapshot.milestones.filter((m) => m.status === 'COMPLETED');
   const activeMilestone = snapshot.milestones.find((m) => m.status === 'IN_PROGRESS');
@@ -119,6 +130,45 @@ export default async function TeamWorkspacePage({
           highlight={snapshot.openQuestionsCount > 2 ? 'warning' : 'neutral'}
         />
       </div>
+
+      {/* ── Team Workload & Capacity (Part 8) ────────────────────── */}
+      {visibleWorkloadMembers.length > 0 && (
+        <section>
+          <SectionHeading
+            icon={<Gauge className="h-4 w-4 text-violet-500" />}
+            title={canSeeFullWorkload ? 'Team Workload & Capacity' : 'Your Workload & Capacity'}
+          />
+          <Card>
+            <CardContent className="divide-y divide-border pt-2">
+              {visibleWorkloadMembers.map((m) => (
+                <div key={m.userId} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium truncate">{m.name}</span>
+                      {m.roleLabel && <Badge variant="outline" className="text-[10px]">{m.roleLabel}</Badge>}
+                      <RiskBadge risk={m.overloadRisk} />
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{m.skillCoverageSummary}</p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5">{m.recommendationNote}</p>
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-sm font-semibold tabular-nums">
+                      {m.currentAssignedHours}h <span className="text-muted-foreground font-normal">/ {m.weeklyCapacityHours}h</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      {m.remainingCapacityHours}h available · {m.activeTaskCount}/{m.maxConcurrentTasks} active tasks
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+          <p className="mt-2 text-[11px] text-muted-foreground">
+            Capacity and role data come from each student&apos;s own formation profile. Private support
+            notes and cognitive profile details are never shown here.
+          </p>
+        </section>
+      )}
 
       {/* ── Blockers (if any) ─────────────────────────────────────── */}
       {snapshot.blockers.length > 0 && (
@@ -527,6 +577,20 @@ export default async function TeamWorkspacePage({
 }
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
+
+const RISK_BADGE_STYLES: Record<string, string> = {
+  LOW: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+  MEDIUM: 'bg-amber-100 text-amber-800 border-amber-200',
+  HIGH: 'bg-red-100 text-red-800 border-red-200',
+};
+
+function RiskBadge({ risk }: { risk: 'LOW' | 'MEDIUM' | 'HIGH' }) {
+  return (
+    <Badge variant="outline" className={cn('text-[10px]', RISK_BADGE_STYLES[risk])}>
+      {risk === 'LOW' ? 'Good availability' : risk === 'MEDIUM' ? 'Approaching capacity' : 'Overloaded'}
+    </Badge>
+  );
+}
 
 function SectionHeading({
   icon,

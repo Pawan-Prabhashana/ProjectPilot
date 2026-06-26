@@ -164,6 +164,6 @@ All routes are coordinator-only and use `getServerSession(authOptions)` directly
 | Part | Enhancement |
 |---|---|
 | Part 7 | Role suitability engine — deeper role-skill gap detection and better role assignment confidence — **done** (see [ROLE_SUITABILITY_ENGINE.md](ROLE_SUITABILITY_ENGINE.md)) |
-| Part 8 | Capacity-aware task allocation — auto-assign tasks to team members based on capacity and role |
+| Part 8 | Capacity-aware task allocation — recommend (never auto-assign) task assignees based on capacity and role — **done** (see [CAPACITY_AWARE_TASK_ALLOCATION.md](CAPACITY_AWARE_TASK_ALLOCATION.md)) |
 | Part 9 | Conflict/gap dashboard — unified view of unresolved formation conflicts, skill gaps, and schedule conflicts |
 | Part 10 | End-to-end workflow polish — coordinator bulk actions, student notifications on publish, formation report export |

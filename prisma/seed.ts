@@ -215,6 +215,11 @@ async function main() {
     });
     await createTasks(project.id, milestones, teamMembers.map((m) => m.userId));
 
+    // Part 8: capacity-aware task allocation demo data (Team Vertex only — keeps seed minimal)
+    if (teamDef.slug === 'team-vertex') {
+      await createCapacityAllocationDemoTasks(project.id, milestones[2]?.id);
+    }
+
     // Contribution logs (each member gets a distinct contribution mix)
     for (let mi = 0; mi < teamMembers.length; mi++) {
       await createContributionLogs(project.id, teamMembers[mi].userId, mi);
@@ -1390,6 +1395,107 @@ async function createTasks(
   }
 
   return createdTasks;
+}
+
+// Part 8: a small, fixed set of tasks layered onto Team Vertex's existing workload so the
+// capacity-aware allocation engine has something concrete to demonstrate.
+//
+// Team Vertex's pre-existing tasks already saturate everyone's maxConcurrentTasks almost
+// exactly (aisha 3/3, ruvan 4/2, thilini 2/2) — active-task-count saturation drives risk
+// level independently of hours, so adding even one more active task to aisha or thilini
+// would flip them straight to HIGH risk and erase the "who's actually available" contrast
+// we want to demonstrate. So all new ACTIVE tasks below go to ruvan (deepening his existing
+// overload to ~155% of weekly capacity — the clear "overloaded" persona), while the
+// UI/UX/frontend and documentation/research demo tasks are left UNASSIGNED — which doubles
+// as a live demo of the recommendation engine, since opening either task and asking for a
+// recommendation will correctly point at aisha/thilini (good skill fit) over the swamped
+// ruvan. Thilini and aisha stay at their exact pre-existing baseline, where thilini reads as
+// the most available member (≈69% utilisation vs aisha's ≈83%).
+// Idempotent: skipped per-title if a task with that title already exists on the project,
+// since Task has no unique constraint to upsert on.
+async function createCapacityAllocationDemoTasks(projectId: string, milestoneId: string | undefined) {
+  const ruvan = await prisma.user.findUnique({ where: { email: 'ruvan@demo.com' } });
+  if (!ruvan) return;
+
+  type DemoTaskDef = {
+    title: string;
+    description: string;
+    doneCriteria: string;
+    priority: 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT';
+    dueDate: Date;
+    estimatedMinutes: number;
+    cognitiveLoad: number;
+    requiredSkills: string[];
+    suggestedRoleKey: string | null;
+    assigneeId: string | null;
+  };
+
+  const demoTasks: DemoTaskDef[] = [
+    {
+      title: 'Add database indexes for attendance query performance',
+      description:
+        'Profile the slow attendance summary queries and add appropriate indexes/composite keys to the Prisma schema.',
+      doneCriteria: 'Query plans show index usage. Summary endpoint responds in under 300ms with seeded data volume.',
+      priority: 'HIGH',
+      dueDate: daysFromNow(11), estimatedMinutes: 180, cognitiveLoad: 3,
+      requiredSkills: ['backend', 'database'], suggestedRoleKey: 'backend_developer',
+      assigneeId: ruvan.id,
+    },
+    {
+      title: 'Diagnose intermittent RFID sync failures before examiner demo',
+      description:
+        'Investigate sporadic data-loss reports from the RFID ingestion service under load before the upcoming examiner demo. Requires careful tracing across the backend and deployment pipeline.',
+      doneCriteria: 'Root cause documented with reproduction steps. Fix or mitigation merged and verified against the failure scenario.',
+      priority: 'URGENT',
+      dueDate: daysFromNow(2), estimatedMinutes: 90, cognitiveLoad: 5,
+      requiredSkills: ['backend', 'devops'], suggestedRoleKey: 'backend_developer',
+      assigneeId: ruvan.id,
+    },
+    {
+      title: 'Redesign attendance dashboard cards for clarity',
+      description:
+        'Rework the dashboard stat cards and filters for better readability and mobile layout, following the UI/UX design system.',
+      doneCriteria: 'Updated cards reviewed by team lead. Responsive at 375px and desktop widths.',
+      priority: 'MEDIUM',
+      dueDate: daysFromNow(14), estimatedMinutes: 120, cognitiveLoad: 3,
+      requiredSkills: ['frontend', 'ui_ux'], suggestedRoleKey: null,
+      assigneeId: null,
+    },
+    {
+      title: 'Write API & data-handling documentation for examiner pack',
+      description:
+        'Document the attendance API endpoints, data retention policy, and RFID data flow for the examiner submission pack.',
+      doneCriteria: 'Documentation covers every public API endpoint and the data flow diagram. Reviewed by supervisor before submission.',
+      priority: 'MEDIUM',
+      dueDate: daysFromNow(20), estimatedMinutes: 120, cognitiveLoad: 2,
+      requiredSkills: ['documentation', 'research'], suggestedRoleKey: null,
+      assigneeId: null,
+    },
+  ];
+
+  for (const t of demoTasks) {
+    const existing = await prisma.task.findFirst({ where: { projectId, title: t.title } });
+    if (existing) continue;
+    await prisma.task.create({
+      data: {
+        projectId,
+        milestoneId: milestoneId ?? null,
+        title: t.title,
+        description: t.description,
+        doneCriteria: t.doneCriteria,
+        status: 'TODO',
+        priority: t.priority,
+        dueDate: t.dueDate,
+        estimatedMinutes: t.estimatedMinutes,
+        cognitiveLoad: t.cognitiveLoad,
+        assigneeId: t.assigneeId,
+        requiredSkills: t.requiredSkills,
+        suggestedRoleKey: t.suggestedRoleKey,
+      },
+    });
+  }
+
+  console.log('  ✓ Capacity-aware allocation demo tasks created for Team Vertex');
 }
 
 // Index determines contribution variety — each team member gets a distinct but overlapping mix
