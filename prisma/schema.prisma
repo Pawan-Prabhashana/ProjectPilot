@@ -208,6 +208,47 @@ enum SignalSeverity {
 // --- Academic Term Formation ---
 
 // Lifecycle of an academic term used to scope formation batches
+// =============================================================================
+// PART 3 — STUDENT FORMATION PROFILE ENUMS
+// =============================================================================
+
+enum FormationProfileStatus {
+  DRAFT
+  SUBMITTED
+  NEEDS_REVIEW
+}
+
+enum SkillLevelSource {
+  SELF_ASSESSED
+  COURSEWORK
+  PROJECT_EXPERIENCE
+  SUPERVISOR_VERIFIED
+}
+
+enum Weekday {
+  MONDAY
+  TUESDAY
+  WEDNESDAY
+  THURSDAY
+  FRIDAY
+  SATURDAY
+  SUNDAY
+}
+
+enum AvailabilityBlock {
+  MORNING
+  AFTERNOON
+  EVENING
+  NIGHT
+}
+
+enum AvailabilityLevel {
+  PREFERRED
+  AVAILABLE
+  LIMITED
+  UNAVAILABLE
+}
+
 enum AcademicTermStatus {
   PLANNED
   ACTIVE
@@ -376,10 +417,11 @@ model StudentProfile {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   cognitiveProfile CognitiveProfile?
   teamMemberships  TeamMember[]
   intakeRecords    StudentIntake[]
+  formationProfile StudentFormationProfile?
 }
 
 model SupervisorProfile {
@@ -1197,4 +1239,104 @@ model FormationRuleSet {
   updatedAt                  DateTime @updatedAt
 
   batch FormationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+}
+
+// =============================================================================
+// PART 3 — STUDENT FORMATION PROFILE MODELS
+// =============================================================================
+
+// The student's self-described formation profile: skills, availability,
+// role preferences, capacity, and safe non-diagnostic support signals.
+// Privacy: privateSupportNotes is student-only; NEVER query in
+// coordinator/supervisor services. safeSupportPreferences stores
+// anonymous support style signals, not diagnosis labels.
+model StudentFormationProfile {
+  id                      String                 @id @default(cuid())
+  studentProfileId        String                 @unique
+  status                  FormationProfileStatus @default(DRAFT)
+  weeklyCapacityHours     Int                    @default(8)
+  maxConcurrentTasks      Int                    @default(2)
+  preferredTeamSize       Int?
+  meetingPreference       String?
+  communicationPreference String?
+  workStylePreferences    Json?
+  domainPreferences       Json?
+  // Non-diagnostic safe support signals (e.g. "prefers_async_communication").
+  // Never exposed to coordinators or supervisors in raw form.
+  safeSupportPreferences  Json?
+  // Fully private — student-only. NEVER query in coordinator/supervisor services.
+  privateSupportNotes     String?                @db.Text
+  completionScore         Int                    @default(0)
+  submittedAt             DateTime?
+  createdAt               DateTime               @default(now())
+  updatedAt               DateTime               @updatedAt
+
+  studentProfile  StudentProfile            @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  skills          StudentSkill[]
+  availability    StudentAvailabilitySlot[]
+  rolePreferences StudentRolePreference[]
+}
+
+// A single skill entry in the student's formation profile.
+// level 1–5, interest 1–5. Validated in service layer.
+model StudentSkill {
+  id         String           @id @default(cuid())
+  profileId  String
+  skillKey   String
+  skillLabel String
+  category   String
+  level      Int
+  interest   Int              @default(3)
+  source     SkillLevelSource @default(SELF_ASSESSED)
+  evidence   String?          @db.Text
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+
+  profile StudentFormationProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, skillKey])
+  @@index([profileId])
+  @@index([skillKey])
+  @@index([category])
+}
+
+// One availability block entry per day-of-week + time-block combination.
+model StudentAvailabilitySlot {
+  id        String            @id @default(cuid())
+  profileId String
+  dayOfWeek Weekday
+  block     AvailabilityBlock
+  level     AvailabilityLevel @default(AVAILABLE)
+  note      String?           @db.Text
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+
+  profile StudentFormationProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, dayOfWeek, block])
+  @@index([profileId])
+  @@index([dayOfWeek, block])
+  @@index([level])
+}
+
+// A student's preference and confidence level for each team role.
+// avoid=true means this student explicitly does not want this role.
+model StudentRolePreference {
+  id              String   @id @default(cuid())
+  profileId       String
+  roleKey         String
+  roleLabel       String
+  preferenceLevel Int      @default(3)
+  confidenceLevel Int      @default(3)
+  avoid           Boolean  @default(false)
+  note            String?  @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  profile StudentFormationProfile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, roleKey])
+  @@index([profileId])
+  @@index([roleKey])
+  @@index([avoid])
 }

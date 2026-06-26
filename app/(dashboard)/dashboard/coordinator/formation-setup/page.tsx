@@ -1,11 +1,13 @@
 import type { Metadata } from 'next';
 import { requireAuth } from '@/lib/rbac';
 import { getFormationSetupData } from '@/lib/services/formation/setup';
+import { getFormationProfileReadiness } from '@/lib/services/formation/student-profile';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { HealthBadge } from '@/components/shared/health-badge';
+import { Progress } from '@/components/ui/progress';
 import {
   Calendar,
   Users,
@@ -15,6 +17,8 @@ import {
   AlertTriangle,
   Shield,
   BookOpen,
+  BarChart3,
+  FileText,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { TeamHealthStatus } from '@prisma/client';
@@ -38,18 +42,23 @@ export default async function FormationSetupPage() {
   const data = await getFormationSetupData();
   const { activeTerm, intakeSummary, batches, linkedTeams } = data;
 
+  // Fetch aggregate formation profile readiness (no private data)
+  const profileReadiness = activeTerm
+    ? await getFormationProfileReadiness(activeTerm.id)
+    : null;
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Formation Setup"
-        description="Academic terms, student intake, and formation batches — the foundation for intelligent team formation."
+        description="Academic terms, student intake, formation batches, and profile readiness — the foundation for intelligent team formation."
       />
 
       <InfoCallout variant="info" title="Formation engine coming in Part 5">
         This setup layer prepares the system for the intelligent formation engine. Today it shows
-        the active term, intake status, batch configuration, and rule weights. The matching
-        algorithm — which will use skill, schedule, role, and capacity data to form balanced teams
-        — is a planned next module built on top of this foundation.
+        the active term, intake status, batch configuration, rule weights, and student profile
+        readiness. The matching algorithm — which will use skill, schedule, role, and capacity data
+        to form balanced teams — is a planned next module built on top of this foundation.
       </InfoCallout>
 
       {/* ── No active term ── */}
@@ -154,7 +163,66 @@ export default async function FormationSetupPage() {
             )}
           </section>
 
-          {/* ── Section 3: Formation batches ── */}
+          {/* ── Section 3: Formation profile readiness (Part 3) ── */}
+          {profileReadiness && (
+            <section>
+              <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+                <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                Formation Profile Readiness
+              </h2>
+              <Card>
+                <CardContent className="pt-4 pb-4 space-y-4">
+                  <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                    <IntakeStatBlock
+                      label="Profiles Submitted"
+                      value={profileReadiness.submitted}
+                      icon={<CheckCircle className="h-4 w-4 text-emerald-500" />}
+                    />
+                    <IntakeStatBlock
+                      label="Still Draft"
+                      value={profileReadiness.draft}
+                      icon={<FileText className="h-4 w-4 text-sky-500" />}
+                      highlight={profileReadiness.draft > 0}
+                    />
+                    <IntakeStatBlock
+                      label="No Profile Yet"
+                      value={profileReadiness.noProfile}
+                      icon={<AlertTriangle className="h-4 w-4 text-amber-500" />}
+                      highlight={profileReadiness.noProfile > 0}
+                    />
+                    <IntakeStatBlock
+                      label="No Skills Recorded"
+                      value={profileReadiness.withNoSkills}
+                      icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
+                      highlight={profileReadiness.withNoSkills > 0}
+                    />
+                  </div>
+                  <div className="rounded-lg border bg-muted/20 px-4 py-3">
+                    <div className="flex items-center justify-between gap-3 mb-2">
+                      <span className="text-xs font-medium text-foreground">
+                        Average completion score
+                      </span>
+                      <span className="text-sm font-bold tabular-nums">
+                        {profileReadiness.avgCompletionScore}/100
+                      </span>
+                    </div>
+                    <Progress value={profileReadiness.avgCompletionScore} className="h-2" />
+                    <p className="text-[10px] text-muted-foreground mt-1.5">
+                      {profileReadiness.submitted} of {profileReadiness.totalIntake} students have submitted a formation profile.
+                      Score reflects skills, availability, roles, capacity, and domain preferences filled in.
+                    </p>
+                  </div>
+                  <p className="text-[10px] text-muted-foreground border-t pt-3">
+                    <span className="font-medium text-foreground">Privacy note:</span>{' '}
+                    This section shows aggregate readiness counts only. Private support notes and
+                    individual cognitive profile details are never shown here.
+                  </p>
+                </CardContent>
+              </Card>
+            </section>
+          )}
+
+          {/* ── Section 4: Formation batches ── */}
           <section>
             <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
               <Layers className="h-4 w-4 text-muted-foreground" />
@@ -244,7 +312,7 @@ export default async function FormationSetupPage() {
                               label="Support compatibility"
                               value={batch.ruleSet.supportCompatibilityWeight}
                               total={batch.ruleSet.totalWeight}
-                              note="Uses safe, private support preferences only"
+                              note="Uses safe, non-diagnostic support preferences only"
                             />
                           </div>
                         </div>
@@ -262,7 +330,7 @@ export default async function FormationSetupPage() {
             )}
           </section>
 
-          {/* ── Section 4: Teams linked to this term ── */}
+          {/* ── Section 5: Teams linked to this term ── */}
           <section>
             <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
               <Shield className="h-4 w-4 text-muted-foreground" />
@@ -318,8 +386,8 @@ export default async function FormationSetupPage() {
         <p className="text-xs text-muted-foreground">
           <span className="font-semibold text-foreground">Privacy note:</span>{' '}
           Formation setup pages show only operational data (intake status, team counts, batch
-          configuration). Student cognitive profile and accessibility data is never exposed here
-          or used directly in formation decisions.
+          configuration, and aggregate profile readiness scores). Individual student cognitive
+          profiles, private support notes, and accessibility data are never exposed here.
         </p>
       </div>
     </div>

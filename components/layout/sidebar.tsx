@@ -112,6 +112,14 @@ const navItems: NavItem[] = [
     description: 'Accessibility and notification preferences',
   },
 
+  {
+    href: '/dashboard/student/formation-profile',
+    label: 'Formation Profile',
+    icon: Target,
+    roles: ['STUDENT'],
+    description: 'Skills, availability, capacity, and support preferences',
+  },
+
   // ── STUDENT LEADER-ONLY ───────────────────────────────────────────────────
   {
     href: '/dashboard/leader',
