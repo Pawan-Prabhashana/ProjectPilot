@@ -8,8 +8,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { TaskStatusButton } from '@/components/tasks/task-status-button';
+import { ReassignWithRecommendation } from '@/components/tasks/reassign-with-recommendation';
 import { ExplainableScoreCard } from '@/components/metrics/explainable-score-card';
 import { scoreTaskAmbiguity } from '@/lib/metrics/task-ambiguity';
+import { canManageTeam } from '@/lib/rbac/team-permissions';
 import {
   ArrowLeft, User, Clock, Target, AlertTriangle, Lock, HelpCircle,
   Zap, GitBranch, CheckCircle, Circle, ChevronRight,
@@ -67,6 +69,10 @@ export default async function TaskDetailPage({ params }: Props) {
   const steps = task.decomposition?.steps as { title: string; estimatedMinutes: number; orderIndex: number; done: boolean }[] ?? [];
   const stepsDone = steps.filter((s) => s.done).length;
   const stepsProgress = steps.length > 0 ? Math.round((stepsDone / steps.length) * 100) : 0;
+
+  // Part 8: only leaders/supervisors/coordinators can reassign with allocation recommendations.
+  const canReassign = await canManageTeam(user, task.project.teamId);
+  const requiredSkills = Array.isArray(task.requiredSkills) ? (task.requiredSkills as string[]) : [];
 
   return (
     <div className="space-y-6 max-w-3xl">
@@ -376,6 +382,18 @@ export default async function TaskDetailPage({ params }: Props) {
               )}
             </CardContent>
           </Card>
+
+          {canReassign && !['DONE', 'CANCELLED'].includes(task.status) && (
+            <ReassignWithRecommendation
+              taskId={task.id}
+              teamId={task.project.teamId}
+              currentAssigneeId={task.assignee?.id ?? null}
+              estimatedMinutes={task.estimatedMinutes}
+              cognitiveLoad={task.cognitiveLoad}
+              dueDate={task.dueDate ? task.dueDate.toISOString() : null}
+              requiredSkills={requiredSkills}
+            />
+          )}
         </div>
       </div>
     </div>
@@ -410,6 +428,7 @@ async function getTaskDetail(taskId: string) {
     include: {
       assignee: { select: { id: true, name: true, email: true } },
       milestone: { select: { id: true, title: true } },
+      project: { select: { teamId: true } },
       decomposition: true,
       outgoingDeps: {
         include: {

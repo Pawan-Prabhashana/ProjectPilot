@@ -185,9 +185,12 @@ is unchanged).
 
 ---
 
-## 10. What Part 8 will add
+## 10. What Part 8 added
 
-Part 8 builds **capacity-aware task allocation** on top of these roles: it will use each member's
-assigned role plus `weeklyCapacityHours` / `maxConcurrentTasks` to distribute tasks fairly, balance
-load, and avoid overloading any single member. Part 7's role assignments and the per-member
-suitability evidence are the inputs Part 8 consumes; the separate conflict/gap dashboard is Part 9.
+Part 8 built **capacity-aware task allocation** on top of these roles (see
+[CAPACITY_AWARE_TASK_ALLOCATION.md](CAPACITY_AWARE_TASK_ALLOCATION.md)): it reuses `getRoleCatalogue()`
+from this module to infer which role(s) a task's required skills imply, and combines that with each
+member's resolved role, `weeklyCapacityHours`, `maxConcurrentTasks`, and current active-task load to
+recommend — never auto-assign — a fair, explained task assignee. Part 7's role assignments and the
+per-member suitability evidence are the inputs Part 8 consumes; the separate conflict/gap dashboard is
+Part 9.

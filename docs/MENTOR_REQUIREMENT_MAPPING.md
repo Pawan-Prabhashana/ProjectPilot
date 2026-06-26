@@ -70,13 +70,13 @@ operational data and signals that the formation engine will consume.
 
 These are **planned next modules**, not implemented yet:
 
-- **Capacity-aware task allocation** that distributes tasks by each member's capacity and role — Part 8.
 - A unified **conflict/gap dashboard** — Part 9.
 
 The **deterministic formation engine** (balanced team generation, topic suggestion, skill-gap and
 schedule-conflict detection) is implemented in **Part 5** (`docs/TEAM_FORMATION_ENGINE.md`); the
-**coordinator workspace + publishing** in **Part 6** (`docs/COORDINATOR_FORMATION_WORKSPACE.md`); and
-the **role suitability engine** in **Part 7** (`docs/ROLE_SUITABILITY_ENGINE.md`).
+**coordinator workspace + publishing** in **Part 6** (`docs/COORDINATOR_FORMATION_WORKSPACE.md`); the
+**role suitability engine** in **Part 7** (`docs/ROLE_SUITABILITY_ENGINE.md`); and **capacity-aware
+task allocation** in **Part 8** (`docs/CAPACITY_AWARE_TASK_ALLOCATION.md`).
 
 ---
 
@@ -87,7 +87,7 @@ the **role suitability engine** in **Part 7** (`docs/ROLE_SUITABILITY_ENGINE.md`
 | Skill imbalances | Skill inventory and skill coverage scoring | Implemented (draft) — Part 5 skill score + gap warnings |
 | Duplicate project selections | Project topic catalogue and preference conflict detection | Implemented — Part 4 |
 | Students left without teams | Unassigned student tracking and formation batches | Implemented (draft) — Part 5 places every eligible student; unassigned tracked in run summary |
-| Uneven workload distribution | Capacity-aware task allocation | Partial — Part 5 balances team capacity; task-level allocation is Part 7+ |
+| Uneven workload distribution | Capacity-aware task allocation | Implemented (draft) — Part 8 recommends task assignees from skill, role, capacity, current load, and due-date feasibility; coordinator/leader confirms before assignment |
 | Match by skill | Student skill matrix and role suitability scoring | Implemented (draft) — Part 5 |
 | Match by schedule | Structured availability and overlap scoring | Implemented (draft) — Part 5 schedule score + `SCHEDULE_CONFLICT` |
 | Match by role suitability | Role catalogue and assignment engine | Implemented (draft) — Part 7 deterministic role suitability engine (13-role catalogue, weighted scoring, coverage + role warnings) |
@@ -166,9 +166,22 @@ the team `roleScore`, and raises `MISSING_ROLE_COVERAGE`, `LOW_ROLE_CONFIDENCE`,
 `ROLE_AVOIDANCE_CONFLICT`, and `ROLE_SKILL_MISMATCH` warnings. The workspace shows role confidence,
 "why this role", and a coverage summary. Publishing is unchanged. See `docs/ROLE_SUITABILITY_ENGINE.md`.
 
-**Stage 8 (Part 8+) — Allocation & oversight (planned):**
-Capacity-aware task allocation (using Part 7 roles + capacity), capacity-aware supervisor allocation,
-a conflict/gap dashboard (Part 9), and ongoing team-health-driven rebalancing.
+**Stage 8 (Part 8) — Capacity-aware task allocation (done):**
+Deterministic, explainable assignee recommendations for tasks
+(`lib/services/tasks/task-allocation.ts` with helpers under `lib/task-allocation/`). For a team, scores
+every member against a candidate task on six weighted dimensions — skill match (30%), role match (20%,
+reusing the Part 7 role catalogue), available capacity (20%), current-load fairness (15%), due-date
+feasibility (10%), and support fit (5%, safe preferences only) — and returns a ranked, explained list of
+candidates with a LOW/MEDIUM/HIGH risk level. **Recommends and explains — never auto-assigns**; a
+human always clicks "Apply" or picks a different assignee manually. Surfaces in the task creation form
+and on the task detail page (reassign-with-recommendation), plus a Team Workload & Capacity overview on
+the team page (coordinator/supervisor/leader see every member; students see only their own row).
+Applying a recommendation stores the rationale and score breakdown on the `Task` row and a
+`TaskAllocationRecommendation` audit record. See `docs/CAPACITY_AWARE_TASK_ALLOCATION.md`.
+
+**Stage 9 (Part 9+) — Oversight (planned):**
+Capacity-aware supervisor allocation, a conflict/gap dashboard, and ongoing team-health-driven
+rebalancing.
 
 Throughout every stage, the neurodivergent support layer is used only as **safe, private support
 preferences** that shape a student's own experience (clearer tasks, manageable workload), never as a

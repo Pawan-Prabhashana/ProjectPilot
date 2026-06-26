@@ -97,8 +97,10 @@ export default async function NewTaskPage({
 
       <CreateTaskForm
         projectId={project.id}
+        teamId={workspace.teamId}
         members={members.map((m) => m.user)}
         milestones={milestones}
+        canSeeAllocationPanel={allowed}
       />
     </div>
   );
