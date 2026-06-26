@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { PageHeader } from '@/components/shared/page-header';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -54,6 +56,8 @@ const emptyForm: NewTopicForm = { title: '', slug: '', description: '', domain: 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function CoordinatorProjectTopicsPage() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [data,          setData]          = useState<PageData | null>(null);
   const [loading,       setLoading]       = useState(true);
   const [recalculating, setRecalculating] = useState(false);
@@ -62,6 +66,15 @@ export default function CoordinatorProjectTopicsPage() {
   const [form,          setForm]          = useState<NewTopicForm>(emptyForm);
   const [expandedTopic, setExpandedTopic] = useState<string | null>(null);
   const [toast,         setToast]         = useState<{ type: 'success'|'error'; msg: string } | null>(null);
+
+  // Role guard — redirect non-coordinators away
+  useEffect(() => {
+    if (status === 'loading') return;
+    const role = (session?.user as { role?: string } | undefined)?.role;
+    if (role && role !== 'COORDINATOR') {
+      router.replace('/dashboard/coordinator');
+    }
+  }, [session, status, router]);
 
   const showToast = (type: 'success'|'error', msg: string) => {
     setToast({ type, msg });
@@ -140,6 +153,13 @@ export default function CoordinatorProjectTopicsPage() {
       setCreating(false);
     }
   }
+
+  const userRole = (session?.user as { role?: string } | undefined)?.role;
+  if (status === 'loading' || (userRole && userRole !== 'COORDINATOR')) return (
+    <div className="flex items-center justify-center py-24">
+      <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+    </div>
+  );
 
   if (loading) return (
     <div className="flex items-center justify-center py-24">

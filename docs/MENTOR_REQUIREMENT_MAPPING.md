@@ -70,10 +70,12 @@ operational data and signals that the formation engine will consume.
 
 These are **planned next modules**, not implemented yet:
 
-- A **formation engine** that uses the skill, availability, role, preference, and capacity data from Parts 2–4 to produce balanced teams — Part 5.
+- A **coordinator formation workspace** to review, manually adjust, approve, and publish draft teams into real operational teams — Part 6.
 - **Capacity-aware task allocation** that distributes tasks by each member's capacity — Part 7+.
-- **Gap detection** for missing critical skills in formed teams — Part 5+.
-- A **schedule conflict detector** for overlapping commitments — Part 5+.
+
+The **deterministic formation engine** (balanced team generation, topic/role suggestion,
+skill-gap and schedule-conflict detection) is now implemented as **Part 5** — see
+`docs/TEAM_FORMATION_ENGINE.md`. It produces **draft** results only; nothing is published yet.
 
 ---
 
@@ -81,16 +83,16 @@ These are **planned next modules**, not implemented yet:
 
 | Mentor Requirement | System Capability (planned target) | Status |
 |--------------------|------------------------------------|--------|
-| Skill imbalances | Skill inventory and skill coverage scoring | Planned |
+| Skill imbalances | Skill inventory and skill coverage scoring | Implemented (draft) — Part 5 skill score + gap warnings |
 | Duplicate project selections | Project topic catalogue and preference conflict detection | Implemented — Part 4 |
-| Students left without teams | Unassigned student tracking and formation batches | Partial — unassigned tracking + batch/intake models exist; formation engine planned |
-| Uneven workload distribution | Capacity-aware task allocation | Partial — workload signals exist; allocation engine planned |
-| Match by skill | Student skill matrix and role suitability scoring | Planned |
-| Match by schedule | Structured availability and overlap scoring | Planned |
-| Match by role suitability | Role catalogue and assignment engine | Planned |
-| Missing critical skills | Gap detection warnings | Planned |
-| Overlapping commitments | Schedule conflict detector | Planned |
-| Neurodivergent support needs | Private support preferences and low cognitive load task guidance | Implemented (private to student) |
+| Students left without teams | Unassigned student tracking and formation batches | Implemented (draft) — Part 5 places every eligible student; unassigned tracked in run summary |
+| Uneven workload distribution | Capacity-aware task allocation | Partial — Part 5 balances team capacity; task-level allocation is Part 7+ |
+| Match by skill | Student skill matrix and role suitability scoring | Implemented (draft) — Part 5 |
+| Match by schedule | Structured availability and overlap scoring | Implemented (draft) — Part 5 schedule score + `SCHEDULE_CONFLICT` |
+| Match by role suitability | Role catalogue and assignment engine | Implemented (draft) — Part 5 suggests one primary role per student |
+| Missing critical skills | Gap detection warnings | Implemented (draft) — Part 5 `MISSING_CRITICAL_SKILL` / `WEAK_SKILL_COVERAGE` / `TOPIC_SKILL_GAP` |
+| Overlapping commitments | Schedule conflict detector | Implemented (draft) — Part 5 `SCHEDULE_CONFLICT` |
+| Neurodivergent support needs | Private support preferences and low cognitive load task guidance | Implemented (private to student); Part 5 uses only safe routine signals |
 
 ---
 
@@ -132,12 +134,23 @@ updated with project preference readiness summary (open topics, submitted sets, 
 unresolved conflicts). Seed data creates 10 demo topics, 12 student preference sets, and
 pre-calculated conflict records demonstrating OVER_SELECTED, NO_INTEREST, and SKILL_GAP scenarios.
 
-**Stage 5 (Part 5) — Formation engine (planned):**
-Generate balanced teams as formation batches, place every unassigned student, and surface conflicts
-(skill gaps, duplicate choices, schedule clashes) for coordinator review and override.
+**Stage 5 (Part 5) — Formation engine (done):**
+Deterministic, explainable team-formation engine (`lib/services/formation/team-formation-engine.ts`
+with helpers under `lib/formation/`). For a formation batch it loads eligible students, calculates a
+draft team count from `targetTeamSize`, suggests a project topic per team from submitted preference
+demand, places every student with a deterministic greedy heuristic, suggests one primary role per
+student, computes seven transparent 0–100 scores (skill, schedule, role, preference, capacity,
+support compatibility, supervisor capacity) weighted by `FormationRuleSet`, and raises typed warnings
+(`FormationWarningType`) for gaps and conflicts. Results persist as `TeamFormationRun`, `DraftTeam`,
+`DraftTeamMember`, and `DraftTeamWarning` — **drafts only**, never operational `Team`/`Project` rows.
+Coordinator-only API at `/api/formation-engine/run` and `/api/formation-engine/latest`, plus a
+"Formation Engine Preview" section on the Formation Setup page. No AI/LLM is used: same input ⇒ same
+output. See `docs/TEAM_FORMATION_ENGINE.md`.
 
 **Stage 6 (Part 6) — Coordinator formation workspace (planned):**
-Full formation run UI, override tools, and coordinator approval flow.
+Full formation run UI, manual drag/drop adjustment, override tools, supervisor allocation, and a
+coordinator approval flow that **publishes** approved drafts into real `Team`/`TeamMember`/`Project`
+records and updates `FormationBatch.status` to `APPROVED → PUBLISHED`.
 
 **Stage 7 (Part 7+) — Allocation & oversight (planned):**
 Capacity-aware task allocation, capacity-aware supervisor allocation, and ongoing team-health-driven

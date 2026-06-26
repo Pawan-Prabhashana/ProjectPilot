@@ -4,6 +4,7 @@ import { getFormationSetupData } from '@/lib/services/formation/setup';
 import { getFormationProfileReadiness } from '@/lib/services/formation/student-profile';
 import { getProjectPreferenceReadiness } from '@/lib/services/formation/project-topics';
 import { InfoCallout } from '@/components/shared/info-callout';
+import { FormationEnginePreview } from '@/components/formation/formation-engine-preview';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -60,11 +61,12 @@ export default async function FormationSetupPage() {
         description="Academic terms, student intake, formation batches, and profile readiness — the foundation for intelligent team formation."
       />
 
-      <InfoCallout variant="info" title="Formation engine coming in Part 5">
-        This setup layer prepares the system for the intelligent formation engine. Today it shows
-        the active term, intake status, batch configuration, rule weights, and student profile
-        readiness. The matching algorithm — which will use skill, schedule, role, and capacity data
-        to form balanced teams — is a planned next module built on top of this foundation.
+      <InfoCallout variant="info" title="Formation engine preview is live (Part 5)">
+        This setup layer feeds the deterministic team-formation engine. Below you can run a draft
+        &ldquo;what-if&rdquo; formation that uses skill, schedule, role, preference, capacity, and safe
+        support-routine data to suggest balanced teams, topics, and roles with transparent scores and
+        warnings. These are <strong>drafts only</strong> — review, approval, and publishing into real
+        teams arrive in Part 6.
       </InfoCallout>
 
       {/* ── No active term ── */}
@@ -269,6 +271,9 @@ export default async function FormationSetupPage() {
               </Card>
             </section>
           )}
+
+          {/* ── Section 4b: Formation engine preview (Part 5) ── */}
+          <FormationEnginePreview />
 
           {/* ── Section 5: Formation batches ── */}
           <section>

@@ -116,6 +116,25 @@ The `ProjectSelectionConflict` records for `STUDENT_MISSING_PREFERENCES` contain
 
 ---
 
+## How Part 5 Consumes This Data
+
+The Part 5 formation engine reads **submitted** `ProjectPreference` rows to:
+
+- **Measure topic demand** — first-choice and total counts per topic drive deterministic topic
+  selection (high-demand topics are assigned to draft teams first, respecting `ProjectTopic.maxTeams`).
+- **Score the preference fit** of each draft team — rank 1 = 100, rank 2 = 80, rank 3 = 60,
+  ranked lower = 40, not ranked = 20, averaged across members.
+- **Raise warnings** — `PROJECT_OVER_SELECTED` / `DUPLICATE_TOPIC_PRESSURE` when demand exceeds the
+  slots that can be allocated, and `LOW_PREFERENCE_MATCH` when a draft team did not rank its assigned
+  topic highly.
+
+It also reads `ProjectTopic.requiredSkills` / `preferredSkills` for the team skill score and the
+`MISSING_CRITICAL_SKILL` / `WEAK_SKILL_COVERAGE` / `TOPIC_SKILL_GAP` warnings. The Part 4
+`ProjectSelectionConflict` records remain a separate, term-level pre-formation signal. See
+`docs/TEAM_FORMATION_ENGINE.md`.
+
+---
+
 ## Related Files
 
 | File | Purpose |

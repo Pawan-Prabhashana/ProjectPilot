@@ -148,19 +148,45 @@ Existing models updated:
 - `SupervisorProfile` — added `projectTopics` relation.
 - `User` — added `createdProjectTopics` relation (named `ProjectTopicCreator`).
 
-### Part 5 — Formation Engine
+### Part 5 — Formation Engine (draft results)
 
-The engine reads:
-- `FormationBatch` (target sizes, status)
-- `FormationRuleSet` (weights, required coverage)
-- `FormationBatchStudent` (which students are INCLUDED, which are LOCKED)
-- Student formation profiles (from Part 3)
-- Project preferences (from Part 4)
+Part 5 adds the deterministic team-formation engine and four **draft-result** models. These are
+pre-approval "what-if" outputs only — the engine never touches operational `Team`/`TeamMember`/
+`Project` rows and never changes `FormationBatchStudent.status` or `StudentIntake.status`. Part 6
+will publish approved drafts into real teams.
 
-It writes:
-- Team assignments back to `FormationBatchStudent.status = ASSIGNED`
-- New `Team` rows with `formationBatchId` set
-- Updates `StudentIntake.status` to `ASSIGNED_TO_TEAM`
+New models (see `prisma/schema.prisma`, "PART 5" sections):
+
+- **`TeamFormationRun`** — one execution of the engine for a batch. Tracks `status`
+  (`TeamFormationRunStatus`: QUEUED/RUNNING/COMPLETED/FAILED/ARCHIVED), `algorithmVersion`
+  (`deterministic-v1`), `settingsSnapshot` (weights + sizes), and a `summary` JSON
+  (totals, average score, unassigned count, warning counts by type/severity, topic usage). A new run
+  is created every time; previous runs are kept.
+- **`DraftTeam`** — a suggested team within a run. Holds the suggested `topicId`/`supervisorProfileId`,
+  a deterministic name (Draft Team Alpha, Beta, …), `status` (`DraftTeamStatus`), and seven
+  transparent 0–100 scores plus `overallScore` (weighted), an `explanation`, and `metadata`
+  (member count, generic support-routine hints, topic slug).
+- **`DraftTeamMember`** — a suggested placement of a student into a draft team, with `suggestedRoleKey`/
+  `suggestedRoleLabel`, `roleConfidence`, `fitScore`, and an `explanation`. Unique per `(runId,
+  studentProfileId)` and `(draftTeamId, studentProfileId)`.
+- **`DraftTeamWarning`** — a typed warning (`FormationWarningType`) at run/team/student/topic level with
+  a `FormationWarningSeverity`, title, message, and metadata.
+
+The engine reads only operational data: `FormationBatch` + `FormationRuleSet`, `AcademicTerm`,
+`FormationBatchStudent` (INCLUDED/ASSIGNED/LOCKED) joined to `StudentIntake`
+(READY_FOR_FORMATION/ASSIGNED_TO_TEAM), Part 3 formation profiles (skills, availability, role
+preferences, capacity, and the safe `safeSupportPreferences` flags only), Part 4
+`ProjectPreference`/`ProjectTopic`, and `SupervisorProfile` basics. It never reads `CognitiveProfile`
+or `privateSupportNotes`. Full detail in `docs/TEAM_FORMATION_ENGINE.md`.
+
+Existing models updated for Part 5 (new relations only):
+- `AcademicTerm` — `teamFormationRuns`, `draftTeams`
+- `FormationBatch` — `teamFormationRuns`, `draftTeams`
+- `User` — `createdTeamFormationRuns` (named `TeamFormationRunCreator`)
+- `ProjectTopic` — `draftTeams`, `draftTeamWarnings`
+- `SupervisorProfile` — `draftTeams`
+- `StudentProfile` — `draftTeamMemberships`, `draftTeamWarnings`
+- `StudentIntake` — `draftTeamMemberships`
 
 ### Part 6 — Coordinator Formation Workspace
 
