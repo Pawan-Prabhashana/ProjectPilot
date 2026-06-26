@@ -4,13 +4,11 @@ import {
   Users,
   Calendar,
   Zap,
-  CheckCircle,
   ArrowRight,
   BarChart3,
   Lightbulb,
-  MessageSquare,
   Shield,
-  Clock,
+  Target,
   BookOpen,
 } from 'lucide-react';
 
@@ -26,7 +24,7 @@ export default function LandingPage() {
             </div>
             <span className="text-white">ProjectPilot</span>
             <span className="rounded-md bg-sky-500/20 px-1.5 py-0.5 text-[11px] font-bold tracking-wide text-sky-400">
-              NEURO
+              CAPSTONE
             </span>
           </Link>
 
@@ -58,19 +56,21 @@ export default function LandingPage() {
         <div className="relative mx-auto max-w-3xl text-center">
           <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-4 py-1.5 text-sm font-medium text-sky-300">
             <span className="h-1.5 w-1.5 rounded-full bg-sky-400" />
-            Built for neurodivergent university teams
+            Intelligent capstone team formation · neurodivergent-first support built in
           </div>
 
           <h1 className="text-5xl font-bold leading-tight tracking-tight sm:text-6xl">
-            The project platform
+            Form balanced student project teams —
             <br />
             <span className="bg-gradient-to-r from-sky-400 to-indigo-400 bg-clip-text text-transparent">
-              that actually understands you.
+              then keep them on track.
             </span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-xl text-lg text-white/60 leading-relaxed">
-            ProjectPilot Neuro connects student teams with supervisors in one shared space — designed around how neurodivergent minds actually work.
+          <p className="mx-auto mt-6 max-w-2xl text-lg text-white/60 leading-relaxed">
+            ProjectPilot helps coordinators match students by skill, schedule, project preference, role
+            suitability, and capacity — while giving students neurodivergent-friendly support for clear
+            tasks, structured communication, and manageable workloads.
           </p>
 
           <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
@@ -99,16 +99,16 @@ export default function LandingPage() {
       <section className="border-y border-white/8 bg-white/[0.02] px-6 py-16">
         <div className="mx-auto max-w-5xl">
           <p className="mb-8 text-center text-xs font-semibold uppercase tracking-widest text-white/40">
-            The real problem
+            Why manual team formation breaks down
           </p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {[
-              { icon: MessageSquare, text: 'Vague supervisor feedback creates invisible anxiety' },
-              { icon: Clock, text: 'Task overload hits without warning' },
-              { icon: Shield, text: 'Hidden dependencies block progress silently' },
-              { icon: Users, text: 'One team member carries everyone else' },
-              { icon: Calendar, text: 'Consultations are wasted without structure' },
-              { icon: Brain, text: 'Important decisions get lost between meetings' },
+              { icon: Users, text: 'Manually forming hundreds of students creates skill imbalances' },
+              { icon: Target, text: 'Duplicate project selections go unnoticed until it is too late' },
+              { icon: Shield, text: 'Students get left without a team every semester' },
+              { icon: BarChart3, text: 'Workload lands unevenly once teams are formed' },
+              { icon: Calendar, text: 'Overlapping schedules make collaboration impossible' },
+              { icon: Brain, text: 'No way to match people by skill, schedule, or role fit' },
             ].map(({ icon: Icon, text }) => (
               <div
                 key={text}
@@ -127,37 +127,39 @@ export default function LandingPage() {
         <div className="mx-auto max-w-5xl">
           <div className="mb-12 text-center">
             <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-white/40">
-              What ProjectPilot Neuro does
+              What ProjectPilot does
             </p>
-            <h2 className="text-3xl font-bold sm:text-4xl">Everything your team needs.</h2>
-            <p className="mt-3 text-white/50">Three AI layers. One shared space.</p>
+            <h2 className="text-3xl font-bold sm:text-4xl">From formation to delivery.</h2>
+            <p className="mt-3 text-white/50">
+              Balanced teams, fair allocation, and clear oversight — with neurodivergent support built in.
+            </p>
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {[
               {
-                icon: Lightbulb,
-                color: 'text-amber-400',
-                bg: 'bg-amber-500/10',
-                title: 'Personal Support Agent',
-                description:
-                  'Each student has a private cognitive profile. The AI adapts communication style, reminders, and pacing to how you actually work.',
-              },
-              {
-                icon: Brain,
-                color: 'text-violet-400',
-                bg: 'bg-violet-500/10',
-                title: 'Project Brain',
-                description:
-                  'Shared team memory for decisions, open questions, and assumptions — so nothing important gets forgotten between consultations.',
-              },
-              {
-                icon: BookOpen,
+                icon: Users,
                 color: 'text-sky-400',
                 bg: 'bg-sky-500/10',
-                title: 'Supervisor Bridge',
+                title: 'Intelligent Team Formation',
                 description:
-                  'Translates academic feedback into clear action items. Auto-generates pre-meeting briefs so every consultation is structured.',
+                  'Match students into balanced teams by skill, schedule, project preference, and role suitability — no more skill imbalances or students left without a team.',
+              },
+              {
+                icon: Target,
+                color: 'text-violet-400',
+                bg: 'bg-violet-500/10',
+                title: 'Role & Task Allocation',
+                description:
+                  'Assign suitable roles and distribute tasks according to each member’s capacity, so workload stays fair from day one.',
+              },
+              {
+                icon: Shield,
+                color: 'text-amber-400',
+                bg: 'bg-amber-500/10',
+                title: 'Conflict & Gap Detection',
+                description:
+                  'Flag missing critical skills, duplicate project choices, overloaded students, and overlapping schedules before they derail a team.',
               },
               {
                 icon: BarChart3,
@@ -168,20 +170,20 @@ export default function LandingPage() {
                   'Surfaces workload imbalances, silent members, and overload signals before they become crises.',
               },
               {
-                icon: Calendar,
-                color: 'text-pink-400',
-                bg: 'bg-pink-500/10',
-                title: 'Structured Consultations',
+                icon: BookOpen,
+                color: 'text-indigo-400',
+                bg: 'bg-indigo-500/10',
+                title: 'Supervisor & Coordinator Oversight',
                 description:
-                  'Book meetings with structured agendas. Both sides arrive prepared — no more "so what did you want to discuss?" moments.',
+                  'Coordinators see formation readiness and team health; supervisors get structured briefs and clear action items from feedback.',
               },
               {
-                icon: CheckCircle,
-                color: 'text-green-400',
-                bg: 'bg-green-500/10',
-                title: 'Task Intelligence',
+                icon: Lightbulb,
+                color: 'text-pink-400',
+                bg: 'bg-pink-500/10',
+                title: 'Neurodivergent-First Support',
                 description:
-                  'Detects ambiguous requirements, surfaces dependencies, and breaks large tasks into manageable steps automatically.',
+                  'A private support layer gives students clearer communication, lower cognitive load, and structured task guidance — never exposed to coordinators or supervisors.',
               },
             ].map(({ icon: Icon, color, bg, title, description }) => (
               <div
@@ -263,9 +265,9 @@ export default function LandingPage() {
             <div className="flex h-5 w-5 items-center justify-center rounded bg-sky-500/80">
               <Zap className="h-3 w-3 text-white" />
             </div>
-            ProjectPilot Neuro
+            ProjectPilot
           </div>
-          <span>Built for neurodivergent university teams</span>
+          <span>Intelligent capstone team formation · neurodivergent-first support built in</span>
         </div>
       </footer>
     </div>

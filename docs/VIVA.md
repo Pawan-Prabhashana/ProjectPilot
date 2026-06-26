@@ -1,6 +1,13 @@
-# ProjectPilot Neuro — Technical Viva Defense Guide
+# ProjectPilot — Technical Viva Defense Guide
 
 > Use this document to prepare confident, precise answers for viva and judging.
+
+> **Product framing:** ProjectPilot is an intelligent capstone **team formation, role assignment, task
+> allocation, and conflict detection** platform. Its primary purpose is to help faculty coordinators
+> form balanced student teams and keep them on track. **Neurodivergent-first support is a strong,
+> private differentiator layer** — not the whole product. The sections below explain the support layer
+> in depth (a key innovation); for how the mentor's team-formation requirements map to the current
+> system and the staged roadmap, see [`MENTOR_REQUIREMENT_MAPPING.md`](MENTOR_REQUIREMENT_MAPPING.md).
 
 ---
 

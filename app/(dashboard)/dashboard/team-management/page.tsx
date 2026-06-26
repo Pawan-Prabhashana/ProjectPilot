@@ -37,12 +37,13 @@ export default async function TeamManagementPage() {
     <div className="space-y-6">
       <PageHeader
         title="Team Management"
-        description="View and manage all teams on the platform. Full create/edit/assign functionality coming in Part 2."
+        description="Operational overview of every capstone team — membership, leadership, supervisor coverage, and project status at a glance."
       />
 
-      <InfoCallout variant="info" title="Part 1 — Read-only overview">
-        This page currently shows a read-only list of all teams. Full team creation, supervisor assignment,
-        and student management tools will be added in Part 2.
+      <InfoCallout variant="info" title="Operational team overview">
+        This is the current operational view of all teams and the foundation for upcoming intelligent
+        team formation. Planned next modules add automated team creation, skill-and-schedule based
+        matching, role assignment, and supervisor allocation on top of this overview.
       </InfoCallout>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -113,7 +114,8 @@ export default async function TeamManagementPage() {
           <Users className="mx-auto h-8 w-8 text-muted-foreground mb-3" />
           <p className="font-medium text-foreground">No teams yet</p>
           <p className="text-sm text-muted-foreground mt-1">
-            Team creation tools will be available in Part 2.
+            Teams will appear here once students are organised into capstone groups. Intelligent
+            formation tooling is a planned next module.
           </p>
         </div>
       )}

@@ -1,7 +1,7 @@
 /**
  * Rule-based team health computation.
  *
- * The AI layer (Part 2+) will eventually feed richer signals here.
+ * The planned intelligent formation layer will eventually feed richer signals here.
  * For now, these are deterministic rules derived from observable DB state.
  * The rules are intentionally transparent so supervisors and coordinators
  * can understand exactly why a team is flagged.
