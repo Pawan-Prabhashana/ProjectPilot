@@ -70,12 +70,13 @@ operational data and signals that the formation engine will consume.
 
 These are **planned next modules**, not implemented yet:
 
-- A **coordinator formation workspace** to review, manually adjust, approve, and publish draft teams into real operational teams — Part 6.
-- **Capacity-aware task allocation** that distributes tasks by each member's capacity — Part 7+.
+- **Capacity-aware task allocation** that distributes tasks by each member's capacity and role — Part 8.
+- A unified **conflict/gap dashboard** — Part 9.
 
-The **deterministic formation engine** (balanced team generation, topic/role suggestion,
-skill-gap and schedule-conflict detection) is now implemented as **Part 5** — see
-`docs/TEAM_FORMATION_ENGINE.md`. It produces **draft** results only; nothing is published yet.
+The **deterministic formation engine** (balanced team generation, topic suggestion, skill-gap and
+schedule-conflict detection) is implemented in **Part 5** (`docs/TEAM_FORMATION_ENGINE.md`); the
+**coordinator workspace + publishing** in **Part 6** (`docs/COORDINATOR_FORMATION_WORKSPACE.md`); and
+the **role suitability engine** in **Part 7** (`docs/ROLE_SUITABILITY_ENGINE.md`).
 
 ---
 
@@ -89,7 +90,7 @@ skill-gap and schedule-conflict detection) is now implemented as **Part 5** — 
 | Uneven workload distribution | Capacity-aware task allocation | Partial — Part 5 balances team capacity; task-level allocation is Part 7+ |
 | Match by skill | Student skill matrix and role suitability scoring | Implemented (draft) — Part 5 |
 | Match by schedule | Structured availability and overlap scoring | Implemented (draft) — Part 5 schedule score + `SCHEDULE_CONFLICT` |
-| Match by role suitability | Role catalogue and assignment engine | Implemented (draft) — Part 5 suggests one primary role per student |
+| Match by role suitability | Role catalogue and assignment engine | Implemented (draft) — Part 7 deterministic role suitability engine (13-role catalogue, weighted scoring, coverage + role warnings) |
 | Missing critical skills | Gap detection warnings | Implemented (draft) — Part 5 `MISSING_CRITICAL_SKILL` / `WEAK_SKILL_COVERAGE` / `TOPIC_SKILL_GAP` |
 | Overlapping commitments | Schedule conflict detector | Implemented (draft) — Part 5 `SCHEDULE_CONFLICT` |
 | Neurodivergent support needs | Private support preferences and low cognitive load task guidance | Implemented (private to student); Part 5 uses only safe routine signals |
@@ -155,9 +156,19 @@ approved drafts into real `Team`/`TeamMember`/`Project` records. Updates `Studen
 Duplicate publishing is blocked. Route: `/dashboard/coordinator/team-formation`.
 See `docs/COORDINATOR_FORMATION_WORKSPACE.md`.
 
-**Stage 7 (Part 7+) — Allocation & oversight (planned):**
-Capacity-aware task allocation, capacity-aware supervisor allocation, and ongoing team-health-driven
-rebalancing — all visible to coordinators and supervisors as operational signals.
+**Stage 7 (Part 7) — Role suitability engine (done):**
+Deterministic, explainable role assignment ([`lib/formation/role-suitability.ts`](../lib/formation/role-suitability.ts)).
+A 13-role catalogue with weighted scoring (40% skill, 25% preference, 20% confidence, 10% project
+relevance, 5% capacity) and a large avoid penalty assigns one primary role per student, covering
+critical and topic-driven technical roles first. Stores per-member suitability evidence
+(`DraftTeamMember.metadata`) and per-team role coverage (`DraftTeam.metadata.roleCoverage`), recomputes
+the team `roleScore`, and raises `MISSING_ROLE_COVERAGE`, `LOW_ROLE_CONFIDENCE`,
+`ROLE_AVOIDANCE_CONFLICT`, and `ROLE_SKILL_MISMATCH` warnings. The workspace shows role confidence,
+"why this role", and a coverage summary. Publishing is unchanged. See `docs/ROLE_SUITABILITY_ENGINE.md`.
+
+**Stage 8 (Part 8+) — Allocation & oversight (planned):**
+Capacity-aware task allocation (using Part 7 roles + capacity), capacity-aware supervisor allocation,
+a conflict/gap dashboard (Part 9), and ongoing team-health-driven rebalancing.
 
 Throughout every stage, the neurodivergent support layer is used only as **safe, private support
 preferences** that shape a student's own experience (clearer tasks, manageable workload), never as a

@@ -50,22 +50,34 @@ const SEVERITY_BADGE: Record<string, string> = {
 const SCORE_COLOR = (s: number) =>
   s >= 70 ? 'text-emerald-600' : s >= 50 ? 'text-amber-600' : 'text-red-600';
 
+// Aligned with the Part 7 role suitability catalogue (lib/formation/role-suitability.ts),
+// plus co_leader which the publish step maps to CO_LEADER.
 const ROLE_OPTIONS = [
   { key: 'team_leader', label: 'Team Leader' },
   { key: 'co_leader', label: 'Co-Leader' },
   { key: 'frontend_developer', label: 'Frontend Developer' },
   { key: 'backend_developer', label: 'Backend Developer' },
-  { key: 'fullstack_developer', label: 'Fullstack Developer' },
+  { key: 'database_designer', label: 'Database Designer' },
   { key: 'ui_ux_designer', label: 'UI/UX Designer' },
-  { key: 'database_engineer', label: 'Database Engineer' },
-  { key: 'qa_tester', label: 'QA Tester' },
-  { key: 'devops_engineer', label: 'DevOps Engineer' },
-  { key: 'ai_ml_engineer', label: 'AI/ML Engineer' },
-  { key: 'researcher', label: 'Researcher' },
-  { key: 'project_coordinator', label: 'Project Coordinator' },
+  { key: 'qa_tester', label: 'QA / Testing Lead' },
+  { key: 'documentation_lead', label: 'Documentation Lead' },
+  { key: 'research_lead', label: 'Research Lead' },
+  { key: 'presentation_lead', label: 'Presentation Lead' },
+  { key: 'client_communication_lead', label: 'Client / Supervisor Communication Lead' },
+  { key: 'ai_ml_specialist', label: 'AI / ML Specialist' },
+  { key: 'mobile_developer', label: 'Mobile Developer' },
+  { key: 'devops_support', label: 'DevOps Support' },
 ];
 
 const DRAFT_STATUS_OPTIONS: DraftTeamStatus[] = ['DRAFT', 'NEEDS_REVIEW', 'READY', 'LOCKED'];
+
+/** Human-friendly label for a role key (falls back to a title-cased key). */
+function roleLabel(key: string): string {
+  return (
+    ROLE_OPTIONS.find((r) => r.key === key)?.label ??
+    key.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+  );
+}
 
 type Filter = 'all' | 'needs_review' | 'ready' | 'has_warnings';
 
@@ -602,17 +614,58 @@ export default function TeamFormationWorkspacePage() {
                         </div>
                       </div>
 
+                      {/* Role coverage (Part 7) */}
+                      {team.roleCoverage && (
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <p className="text-xs font-medium text-muted-foreground">Role Coverage</p>
+                            <span className={cn('text-xs font-semibold tabular-nums', SCORE_COLOR(team.roleCoverage.roleCoverageScore))}>
+                              {team.roleCoverage.roleCoverageScore}/100
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5">
+                            {team.roleCoverage.coveredRoles.map((r) => (
+                              <Badge key={`c-${r}`} className="bg-emerald-100 text-emerald-800 text-[10px]">
+                                {roleLabel(r)}
+                              </Badge>
+                            ))}
+                            {team.roleCoverage.weakRoles.map((r) => (
+                              <Badge key={`w-${r}`} className="bg-amber-100 text-amber-800 text-[10px]">
+                                {roleLabel(r)} (weak)
+                              </Badge>
+                            ))}
+                            {team.roleCoverage.missingRoles.map((r) => (
+                              <Badge key={`m-${r}`} className="bg-red-100 text-red-800 text-[10px]">
+                                {roleLabel(r)} (missing)
+                              </Badge>
+                            ))}
+                            {team.roleCoverage.coveredRoles.length === 0 &&
+                              team.roleCoverage.weakRoles.length === 0 &&
+                              team.roleCoverage.missingRoles.length === 0 && (
+                                <span className="text-[11px] text-muted-foreground">No required roles for this team.</span>
+                              )}
+                          </div>
+                        </div>
+                      )}
+
                       {/* Members */}
                       <div>
                         <p className="text-xs font-medium text-muted-foreground mb-2">Members</p>
                         <div className="space-y-2">
                           {team.members.map((member: DraftMemberView) => (
-                            <div key={member.id} className="flex items-center justify-between gap-3 bg-muted/20 rounded-lg px-3 py-2 flex-wrap">
+                            <div key={member.id} className="bg-muted/20 rounded-lg px-3 py-2">
+                             <div className="flex items-center justify-between gap-3 flex-wrap">
                               <div className="flex items-center gap-2 min-w-0">
                                 <Users className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                                 <span className="text-sm font-medium truncate">{member.name}</span>
                                 <span className={cn('text-xs tabular-nums', SCORE_COLOR(member.fitScore))}>
                                   fit: {member.fitScore}
+                                </span>
+                                <span
+                                  className={cn('text-xs tabular-nums', SCORE_COLOR(member.roleConfidence))}
+                                  title="Role suitability / confidence (0–100)"
+                                >
+                                  role: {member.roleConfidence}
                                 </span>
                               </div>
 
@@ -670,6 +723,13 @@ export default function TeamFormationWorkspacePage() {
                                   </button>
                                 )}
                               </div>
+                             </div>
+                             {/* Why this role? — deterministic, privacy-safe role suitability evidence */}
+                             {member.explanation && (
+                               <p className="text-[11px] text-muted-foreground mt-1 pl-6">
+                                 <span className="font-medium text-foreground/70">Why this role:</span> {member.explanation}
+                               </p>
+                             )}
                             </div>
                           ))}
                         </div>

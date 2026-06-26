@@ -43,12 +43,18 @@ import {
   placementScore,
   scoreCapacity,
   scorePreference,
-  scoreRoles,
   scoreSchedule,
   scoreSkill,
   scoreSupervisorCapacity,
   scoreSupport,
 } from '@/lib/formation/team-formation-scoring';
+import {
+  assignRolesForDraftTeam,
+  buildRoleSuitabilityWarnings,
+  calculateRoleCoverage,
+  computeTeamRoleScore,
+  type RoleTeamContext,
+} from '@/lib/formation/role-suitability';
 import type {
   DraftMemberPlan,
   DraftTeamPlan,
@@ -57,6 +63,7 @@ import type {
   FormationRunOverview,
   NormalizedStudent,
   NormalizedTopic,
+  RoleCoverage,
   RunSummary,
 } from '@/lib/formation/team-formation-types';
 
@@ -235,7 +242,10 @@ export async function getFormationRunDetails(runId: string): Promise<FormationRu
   if (!run) return null;
 
   const draftTeams = run.draftTeams.map((t) => {
-    const metadata = (t.metadata ?? {}) as { supportRoutineHints?: string[] };
+    const metadata = (t.metadata ?? {}) as {
+      supportRoutineHints?: string[];
+      roleCoverage?: RoleCoverage | null;
+    };
     return {
       id: t.id,
       name: t.name,
@@ -255,6 +265,7 @@ export async function getFormationRunDetails(runId: string): Promise<FormationRu
       },
       explanation: t.explanation,
       supportRoutineHints: Array.isArray(metadata.supportRoutineHints) ? metadata.supportRoutineHints : [],
+      roleCoverage: metadata.roleCoverage ?? null,
       members: t.members.map((m) => ({
         id: m.id,
         studentProfileId: m.studentProfileId,
@@ -606,7 +617,6 @@ function finalizeTeam(
 
   const skill = scoreSkill(members, topic);
   const schedule = scoreSchedule(members);
-  const roles = scoreRoles(members);
   const preference = scorePreference(members, topic);
   const capacity = scoreCapacity(members);
   const support = scoreSupport(members);
@@ -616,11 +626,18 @@ function finalizeTeam(
     team.supervisorProfileId ? existingSupervisorLoad.get(team.supervisorProfileId) ?? 0 : 0
   );
 
+  // Part 7: deterministic role suitability — assign roles, coverage, and roleScore.
+  const roleCtx: RoleTeamContext = { members, topic };
+  const roleAssignments = assignRolesForDraftTeam(roleCtx);
+  const roleCoverage = calculateRoleCoverage(roleCtx, roleAssignments);
+  const roleResult = computeTeamRoleScore(roleAssignments, roleCoverage);
+  team.roleCoverage = roleCoverage;
+
   team.scores = computeOverall(
     {
       skillScore: skill.score,
       scheduleScore: schedule.score,
-      roleScore: roles.score,
+      roleScore: roleResult.score,
       preferenceScore: preference,
       capacityScore: capacity.score,
       supportCompatibilityScore: support.score,
@@ -630,17 +647,41 @@ function finalizeTeam(
   );
   team.supportRoutineHints = support.routineHints;
 
-  // Apply role suggestions + per-member fit/explanation.
+  // Apply role suggestions + per-member evidence/explanation (privacy-safe).
   for (const m of team.members) {
-    const suggestion = roles.suggestions.get(m.student.studentProfileId);
-    m.suggestedRoleKey = suggestion?.roleKey ?? null;
-    m.suggestedRoleLabel = suggestion?.roleLabel ?? null;
-    m.roleConfidence = suggestion?.confidence ?? 0;
+    const a = roleAssignments.get(m.student.studentProfileId);
+    m.suggestedRoleKey = a?.roleKey ?? null;
+    m.suggestedRoleLabel = a?.roleLabel ?? null;
+    m.roleConfidence = a?.score ?? 0;
     m.fitScore = memberFitScore(m.student, topic);
-    m.explanation = buildMemberExplanation(m, topic);
+    m.explanation = a?.assignmentReason ?? buildMemberExplanation(m, topic);
+    m.roleMetadata = a
+      ? {
+          roleSuitabilityScore: a.score,
+          roleSuitabilityBreakdown: a.breakdown,
+          matchedSkills: a.matchedSkills,
+          weakSkills: a.weakSkills,
+          avoidedRole: a.avoidedRole,
+          assignmentReason: a.assignmentReason,
+        }
+      : null;
   }
 
-  team.explanation = buildTeamExplanation(team, skill, schedule, roles, preference, capacity);
+  team.explanation = buildTeamExplanation(team, skill, schedule, roleCoverage, roleResult.score, preference, capacity);
+
+  // Part 7: role-coverage warnings (engine attaches the draft-team index).
+  for (const rw of buildRoleSuitabilityWarnings(team.name, roleCtx, roleAssignments, roleCoverage, roleResult)) {
+    warnings.push({
+      draftTeamIndex: team.index,
+      studentProfileId: rw.studentProfileId,
+      topicId: rw.topicId,
+      type: rw.type,
+      severity: rw.severity,
+      title: rw.title,
+      message: rw.message,
+      metadata: rw.metadata,
+    });
+  }
 
   // ── Warnings ──
   const idx = team.index;
@@ -673,15 +714,6 @@ function finalizeTeam(
         metadata: { missingRequired: skill.missingRequired, topicId: topic.id },
       });
     }
-  }
-
-  if (!roles.hasClearLeader && members.length > 1) {
-    warnings.push({
-      draftTeamIndex: idx, studentProfileId: null, topicId: topic?.id ?? null,
-      type: 'NO_CLEAR_LEADER', severity: 'MEDIUM',
-      title: 'No clear team leader',
-      message: `${team.name} has no member with a strong, non-avoided preference for team_leader. Consider nominating a lead.`,
-    });
   }
 
   if (members.length > 1 && schedule.sharedUsableSlots < SCHEDULE_STRONG_SHARED_SLOTS) {
@@ -791,6 +823,7 @@ async function persistRun(
           memberCount: team.members.length,
           supportRoutineHints: team.supportRoutineHints,
           topicSlug: team.topic?.slug ?? null,
+          roleCoverage: team.roleCoverage ?? null,
         } as Prisma.InputJsonValue,
       },
     });
@@ -808,6 +841,7 @@ async function persistRun(
           roleConfidence: m.roleConfidence,
           fitScore: m.fitScore,
           explanation: m.explanation,
+          metadata: (m.roleMetadata ?? undefined) as Prisma.InputJsonValue | undefined,
         })),
       });
     }
@@ -882,14 +916,16 @@ function buildTeamExplanation(
   team: DraftTeamPlan,
   skill: ReturnType<typeof scoreSkill>,
   schedule: ReturnType<typeof scoreSchedule>,
-  roles: ReturnType<typeof scoreRoles>,
+  roleCoverage: RoleCoverage,
+  roleScore: number,
   preference: number,
   capacity: ReturnType<typeof scoreCapacity>
 ): string {
   const parts: string[] = [];
   parts.push(`${team.members.length} member(s)${team.topic ? `, suggested topic "${team.topic.title}"` : ', no topic assigned'}.`);
-  parts.push(`Overall ${team.scores.overallScore}/100 (skill ${skill.score}, schedule ${schedule.score}, roles ${roles.score}, preference ${preference}, capacity ${capacity.score}).`);
-  if (roles.coveredRoles.length > 0) parts.push(`Roles covered: ${roles.coveredRoles.join(', ')}.`);
+  parts.push(`Overall ${team.scores.overallScore}/100 (skill ${skill.score}, schedule ${schedule.score}, roles ${roleScore}, preference ${preference}, capacity ${capacity.score}).`);
+  if (roleCoverage.coveredRoles.length > 0) parts.push(`Roles covered: ${roleCoverage.coveredRoles.join(', ')}.`);
+  if (roleCoverage.missingRoles.length > 0) parts.push(`Missing roles: ${roleCoverage.missingRoles.join(', ')}.`);
   if (team.topic && skill.missingRequired.length === 0 && team.topic.requiredSkills.length > 0) {
     parts.push('All required topic skills are covered.');
   }

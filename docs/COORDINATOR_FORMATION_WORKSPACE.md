@@ -51,7 +51,13 @@ Use the status buttons at the bottom of an expanded team card. Statuses: `DRAFT 
 Planned for a future update — currently topic is set by the engine and displayed. Coordinators can manually update `topicId` via the PATCH API if needed.
 
 ### Change a Member's Suggested Role
-Click the pencil icon next to the member's role badge. Select a new role from the dropdown and confirm. Calls `PATCH /api/formation-workspace/member/[memberId]`.
+Click the pencil icon next to the member's role badge. Select a new role from the dropdown and confirm. Calls `PATCH /api/formation-workspace/member/[memberId]`. The dropdown now lists the full Part 7 role catalogue (plus Co-Leader), so manual overrides use the same role keys the engine assigns.
+
+**Part 7 role suitability (read-only context shown per team):**
+- Each member shows a **role confidence** score (0–100 suitability) next to their fit score.
+- A **Why this role** line gives the deterministic, privacy-safe reason for the suggested role (skills matched, stated preference, project alignment).
+- Each expanded team shows a **Role Coverage** summary: covered / weak / missing required roles and a coverage score.
+- Role gaps appear among the team's warnings (`NO_CLEAR_LEADER`, `MISSING_ROLE_COVERAGE`, `LOW_ROLE_CONFIDENCE`, `ROLE_AVOIDANCE_CONFLICT`, `ROLE_SKILL_MISMATCH`). See [ROLE_SUITABILITY_ENGINE.md](ROLE_SUITABILITY_ENGINE.md).
 
 ### Move a Member to Another Team
 Click "Move" next to a member. A modal dialog appears with a dropdown of other teams in the same run. Select the target team and confirm. Calls `POST /api/formation-workspace/move-member`.
@@ -157,7 +163,7 @@ All routes are coordinator-only and use `getServerSession(authOptions)` directly
 
 | Part | Enhancement |
 |---|---|
-| Part 7 | Role suitability engine — deeper role-skill gap detection and better role assignment confidence |
+| Part 7 | Role suitability engine — deeper role-skill gap detection and better role assignment confidence — **done** (see [ROLE_SUITABILITY_ENGINE.md](ROLE_SUITABILITY_ENGINE.md)) |
 | Part 8 | Capacity-aware task allocation — auto-assign tasks to team members based on capacity and role |
 | Part 9 | Conflict/gap dashboard — unified view of unresolved formation conflicts, skill gaps, and schedule conflicts |
 | Part 10 | End-to-end workflow polish — coordinator bulk actions, student notifications on publish, formation report export |
