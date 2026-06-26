@@ -70,14 +70,14 @@ operational data and signals that the formation engine will consume.
 
 These are **planned next modules**, not implemented yet:
 
-- A **student skill inventory / skill matrix** (structured skills per student).
-- A **project topic catalogue** with preference capture and duplicate-selection detection.
-- A **structured availability** model and schedule **overlap scoring**.
-- A **role catalogue** and **role suitability scoring**.
-- A **formation engine** that produces balanced teams (formation batches).
-- **Capacity-aware task allocation** that distributes tasks by each member's capacity.
-- **Gap detection** for missing critical skills.
-- A **schedule conflict detector** for overlapping commitments.
+- A **student skill inventory / skill matrix** (structured skills per student) — Part 3.
+- A **project topic catalogue** with preference capture and duplicate-selection detection — Part 4.
+- A **structured availability** model and schedule **overlap scoring** — Part 3.
+- A **role catalogue** and **role suitability scoring** — Part 3.
+- A **formation engine** that produces balanced teams — Part 5 (the batch/rule-set foundation is now in place).
+- **Capacity-aware task allocation** that distributes tasks by each member's capacity — Part 7+.
+- **Gap detection** for missing critical skills — Part 5+.
+- A **schedule conflict detector** for overlapping commitments — Part 5+.
 
 ---
 
@@ -87,7 +87,7 @@ These are **planned next modules**, not implemented yet:
 |--------------------|------------------------------------|--------|
 | Skill imbalances | Skill inventory and skill coverage scoring | Planned |
 | Duplicate project selections | Project topic catalogue and preference conflict detection | Planned |
-| Students left without teams | Unassigned student tracking and formation batches | Partial — unassigned tracking exists; formation batches planned |
+| Students left without teams | Unassigned student tracking and formation batches | Partial — unassigned tracking + batch/intake models exist; formation engine planned |
 | Uneven workload distribution | Capacity-aware task allocation | Partial — workload signals exist; allocation engine planned |
 | Match by skill | Student skill matrix and role suitability scoring | Planned |
 | Match by schedule | Structured availability and overlap scoring | Planned |
@@ -103,19 +103,31 @@ These are **planned next modules**, not implemented yet:
 **Stage 0 — Foundation stabilisation (done):**
 Lint/build clean, naming fixes, product reframing, coordinator/team/supervisor overviews, this mapping.
 
-**Stage 1 — Inputs & catalogues:**
-Add a student skill inventory, structured availability, a project topic catalogue with preference
-capture, and a role catalogue. These are the inputs the formation engine needs.
+**Stage 1 (Part 1) — Product reframing (done):**
+Landing page, README, dashboard copy, and documentation updated to reflect the intelligent capstone
+team formation direction. Neurodivergent-first support repositioned as a private differentiator layer.
 
-**Stage 2 — Detection & scoring:**
-Skill coverage scoring, duplicate project preference detection, schedule overlap scoring, role
-suitability scoring, and missing-critical-skill gap warnings.
+**Stage 2 (Part 2) — Academic term & intake foundation (done):**
+`AcademicTerm`, `StudentIntake`, `FormationBatch`, `FormationBatchStudent`, and `FormationRuleSet`
+models added to the schema. Seed data creates a demo active term, formation batch, rule set, and
+intake rows for all demo students. Coordinator Formation Setup page added at
+`/dashboard/coordinator/formation-setup`. No matching algorithm yet.
 
-**Stage 3 — Formation engine:**
+**Stage 3 (Part 3) — Student formation profile (planned):**
+Student skill inventory, structured availability/schedule capture, and role preference model.
+These are the inputs the formation engine reads.
+
+**Stage 4 (Part 4) — Project topic catalogue (planned):**
+Project topic catalogue, student project preference ranking, and duplicate-selection detection.
+
+**Stage 5 (Part 5) — Formation engine (planned):**
 Generate balanced teams as formation batches, place every unassigned student, and surface conflicts
 (skill gaps, duplicate choices, schedule clashes) for coordinator review and override.
 
-**Stage 4 — Allocation & oversight:**
+**Stage 6 (Part 6) — Coordinator formation workspace (planned):**
+Full formation run UI, override tools, and coordinator approval flow.
+
+**Stage 7 (Part 7+) — Allocation & oversight (planned):**
 Capacity-aware task allocation, capacity-aware supervisor allocation, and ongoing team-health-driven
 rebalancing — all visible to coordinators and supervisors as operational signals.
 

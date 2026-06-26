@@ -22,6 +22,7 @@ import {
   Target,
   TrendingUp,
   Bell,
+  Layers,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -196,6 +197,13 @@ const navItems: NavItem[] = [
     description: 'Supervisor capacity and team coverage overview',
   },
   {
+    href: '/dashboard/coordinator/formation-setup',
+    label: 'Formation Setup',
+    icon: Layers,
+    roles: ['COORDINATOR'],
+    description: 'Academic terms, student intake, and formation batches',
+  },
+  {
     href: '/dashboard/consultations',
     label: 'Consultations',
     icon: Calendar,
@@ -237,63 +245,6 @@ export function Sidebar({ role, isLeader = false }: SidebarProps) {
     seen.add(item.href);
     return true;
   });
-
-  const NavList = () => (
-    <nav
-      className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3"
-      aria-label="Main navigation"
-    >
-      {/* Leader context banner */}
-      {role === 'STUDENT' && isLeader && (
-        <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
-          <p className="text-[10px] font-semibold text-amber-700 flex items-center gap-1.5">
-            <Crown className="h-3 w-3" />
-            Leader tools available
-          </p>
-          <p className="text-[10px] text-amber-600 mt-0.5">
-            You have leader access in at least one team.
-          </p>
-        </div>
-      )}
-
-      {visible.map((item) => {
-        const isActive =
-          pathname === item.href || pathname.startsWith(item.href + '/');
-        return (
-          <Link
-            key={`${item.href}-${item.label}`}
-            href={item.href}
-            onClick={() => setMobileOpen(false)}
-            title={item.description}
-            aria-current={isActive ? 'page' : undefined}
-            className={cn(
-              'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
-              isActive
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-              item.leaderOnly && !isActive
-                ? 'border border-amber-200/60 hover:border-amber-300/60'
-                : ''
-            )}
-          >
-            <item.icon
-              className={cn(
-                'h-4 w-4 shrink-0 transition-transform duration-150',
-                isActive
-                  ? 'text-primary-foreground'
-                  : 'text-muted-foreground group-hover:text-foreground',
-                !isActive && 'group-hover:scale-110'
-              )}
-            />
-            <span className="flex-1 truncate">{item.label}</span>
-            {item.leaderOnly && !isActive && (
-              <Crown className="h-3 w-3 text-amber-400 shrink-0" />
-            )}
-          </Link>
-        );
-      })}
-    </nav>
-  );
 
   const roleIndicatorColor = {
     STUDENT: isLeader ? 'bg-amber-500' : 'bg-sky-500',
@@ -358,7 +309,59 @@ export function Sidebar({ role, isLeader = false }: SidebarProps) {
           </button>
         </div>
 
-        <NavList />
+        <nav
+          className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-3 py-3"
+          aria-label="Main navigation"
+        >
+          {role === 'STUDENT' && isLeader && (
+            <div className="mb-2 rounded-lg border border-amber-200 bg-amber-50/60 px-3 py-2">
+              <p className="text-[10px] font-semibold text-amber-700 flex items-center gap-1.5">
+                <Crown className="h-3 w-3" />
+                Leader tools available
+              </p>
+              <p className="text-[10px] text-amber-600 mt-0.5">
+                You have leader access in at least one team.
+              </p>
+            </div>
+          )}
+
+          {visible.map((item) => {
+            const isActive =
+              pathname === item.href || pathname.startsWith(item.href + '/');
+            return (
+              <Link
+                key={`${item.href}-${item.label}`}
+                href={item.href}
+                onClick={() => setMobileOpen(false)}
+                title={item.description}
+                aria-current={isActive ? 'page' : undefined}
+                className={cn(
+                  'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                  isActive
+                    ? 'bg-primary text-primary-foreground shadow-sm'
+                    : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                  item.leaderOnly && !isActive
+                    ? 'border border-amber-200/60 hover:border-amber-300/60'
+                    : ''
+                )}
+              >
+                <item.icon
+                  className={cn(
+                    'h-4 w-4 shrink-0 transition-transform duration-150',
+                    isActive
+                      ? 'text-primary-foreground'
+                      : 'text-muted-foreground group-hover:text-foreground',
+                    !isActive && 'group-hover:scale-110'
+                  )}
+                />
+                <span className="flex-1 truncate">{item.label}</span>
+                {item.leaderOnly && !isActive && (
+                  <Crown className="h-3 w-3 text-amber-400 shrink-0" />
+                )}
+              </Link>
+            );
+          })}
+        </nav>
 
         {/* Role / capability indicator */}
         <div className="border-t px-4 py-3">

@@ -81,9 +81,9 @@ enum PriorityLevel {
 
 // Type of dependency between two tasks
 enum DependencyType {
-  BLOCKS             // sourceTask must complete before targetTask can start
-  REQUIRES_OUTPUT    // sourceTask produces an artifact needed by targetTask
-  PARALLEL_OK        // tasks can proceed together but should be coordinated
+  BLOCKS // sourceTask must complete before targetTask can start
+  REQUIRES_OUTPUT // sourceTask produces an artifact needed by targetTask
+  PARALLEL_OK // tasks can proceed together but should be coordinated
 }
 
 // How a student has contributed (used for fairness analysis)
@@ -95,11 +95,11 @@ enum ContributionType {
   PLANNING
   TESTING
   COORDINATION
-  REVIEW              // reviewing others' work, PR reviews, peer feedback
-  DOCUMENTATION       // writing docs, READMEs, architecture notes
-  CLARIFICATION       // resolving ambiguity, answering questions for the team
-  MEETING_PREP        // preparing agendas, consultation briefs
-  UNBLOCKING_SUPPORT  // helping a stuck team member get unstuck
+  REVIEW // reviewing others' work, PR reviews, peer feedback
+  DOCUMENTATION // writing docs, READMEs, architecture notes
+  CLARIFICATION // resolving ambiguity, answering questions for the team
+  MEETING_PREP // preparing agendas, consultation briefs
+  UNBLOCKING_SUPPORT // helping a stuck team member get unstuck
   OTHER
 }
 
@@ -113,12 +113,12 @@ enum TeamHealthStatus {
 
 // Event types that signal social friction or disengagement within a team
 enum FrictionEventType {
-  SILENT_MEMBER          // A member has had no recent activity
+  SILENT_MEMBER // A member has had no recent activity
   REPEATED_CLARIFICATION // Same question asked multiple times (ambiguity burden)
-  OVERLOAD_REPORTED      // A student triggered an overload signal
-  MISSED_DEADLINE        // Task or milestone missed with no update
-  DISENGAGEMENT          // Sustained low contribution from a member
-  CONFLICT               // Logged interpersonal or task conflict
+  OVERLOAD_REPORTED // A student triggered an overload signal
+  MISSED_DEADLINE // Task or milestone missed with no update
+  DISENGAGEMENT // Sustained low contribution from a member
+  CONFLICT // Logged interpersonal or task conflict
 }
 
 // --- Consultation ---
@@ -138,55 +138,55 @@ enum BookingStatus {
 
 // How the student prefers information to be structured for them
 enum CommunicationStyle {
-  DIRECT          // Short, literal, to the point
-  DETAILED        // Full context and reasoning provided
-  VISUAL_FIRST    // Prefers structure, lists, diagrams described
-  STEP_BY_STEP    // Sequential, one thing at a time
-  NARRATIVE       // Context-rich, story-framed explanations
+  DIRECT // Short, literal, to the point
+  DETAILED // Full context and reasoning provided
+  VISUAL_FIRST // Prefers structure, lists, diagrams described
+  STEP_BY_STEP // Sequential, one thing at a time
+  NARRATIVE // Context-rich, story-framed explanations
 }
 
 // How reminders should feel
 enum ReminderStyle {
-  GENTLE           // Soft nudges with no urgency framing
-  STRUCTURED       // Calendar-like, predictable schedule
+  GENTLE // Soft nudges with no urgency framing
+  STRUCTURED // Calendar-like, predictable schedule
   DEADLINE_FOCUSED // Clear emphasis on deadline and consequence
-  MINIMAL          // As few reminders as possible
+  MINIMAL // As few reminders as possible
 }
 
 // Preferred meeting/consultation style
 enum MeetingFormat {
-  ASYNC_PREFERRED    // Email, notes, or messages before any sync call
-  SHORT_SYNC         // Brief live conversations (≤15 min)
-  STRUCTURED_AGENDA  // Needs written agenda in advance
-  FLEXIBLE           // Adaptable to context
+  ASYNC_PREFERRED // Email, notes, or messages before any sync call
+  SHORT_SYNC // Brief live conversations (≤15 min)
+  STRUCTURED_AGENDA // Needs written agenda in advance
+  FLEXIBLE // Adaptable to context
 }
 
 // How easily the student reaches cognitive overload
 enum OverloadSensitivity {
-  LOW    // Handles heavy loads well
+  LOW // Handles heavy loads well
   MEDIUM
-  HIGH   // Easily overwhelmed; AI should proactively de-escalate
+  HIGH // Easily overwhelmed; AI should proactively de-escalate
 }
 
 // Preferred work rhythm
 enum PacingPreference {
-  STEADY      // Consistent daily progress
+  STEADY // Consistent daily progress
   SPRINT_REST // Intense bursts followed by recovery periods
-  FLEXIBLE    // No strong preference
+  FLEXIBLE // No strong preference
 }
 
 // Comfort level when a task or instruction is ambiguous
 enum AmbiguityComfort {
-  LOW    // Ambiguity is very distressing; needs clear steps
+  LOW // Ambiguity is very distressing; needs clear steps
   MEDIUM
-  HIGH   // Can tolerate and navigate vague instructions
+  HIGH // Can tolerate and navigate vague instructions
 }
 
 // How much AI/cognitive assistance the student wants
 enum SupportMode {
-  MINIMAL        // Student prefers to self-manage; AI only on explicit request
-  MODERATE       // Proactive nudges for risk, ambiguity, and overload
-  COMPREHENSIVE  // Full support: decomposition, rewriting, pacing suggestions
+  MINIMAL // Student prefers to self-manage; AI only on explicit request
+  MODERATE // Proactive nudges for risk, ambiguity, and overload
+  COMPREHENSIVE // Full support: decomposition, rewriting, pacing suggestions
 }
 
 // How often notification digests are sent
@@ -205,6 +205,44 @@ enum SignalSeverity {
   HIGH
 }
 
+// --- Academic Term Formation ---
+
+// Lifecycle of an academic term used to scope formation batches
+enum AcademicTermStatus {
+  PLANNED
+  ACTIVE
+  COMPLETED
+  ARCHIVED
+}
+
+// Where a student sits in the intake → team journey for a given term
+enum StudentIntakeStatus {
+  INVITED
+  PROFILE_PENDING
+  READY_FOR_FORMATION
+  ASSIGNED_TO_TEAM
+  WITHDRAWN
+}
+
+// Workflow states for a formation run
+enum FormationBatchStatus {
+  DRAFT
+  READY
+  RUNNING
+  REVIEW
+  APPROVED
+  PUBLISHED
+  ARCHIVED
+}
+
+// How a student is treated within a specific formation batch
+enum FormationBatchStudentStatus {
+  INCLUDED
+  EXCLUDED
+  LOCKED
+  ASSIGNED
+}
+
 // Entity types used by polymorphic insight/flag records
 enum AIEntityType {
   TASK
@@ -218,14 +256,14 @@ enum AIEntityType {
 
 // The category of an AI insight
 enum InsightType {
-  AMBIGUITY         // Something is unclear
-  OVERLOAD_RISK     // Member approaching capacity
-  DEPENDENCY        // Hidden or undocumented task dependency
-  FAIRNESS          // Workload distribution imbalance
-  TASK_RISK         // Task at risk of missing deadline
-  MILESTONE_RISK    // Milestone health concern
-  POSITIVE          // Celebration or encouragement
-  SUGGESTION        // Actionable improvement
+  AMBIGUITY // Something is unclear
+  OVERLOAD_RISK // Member approaching capacity
+  DEPENDENCY // Hidden or undocumented task dependency
+  FAIRNESS // Workload distribution imbalance
+  TASK_RISK // Task at risk of missing deadline
+  MILESTONE_RISK // Milestone health concern
+  POSITIVE // Celebration or encouragement
+  SUGGESTION // Actionable improvement
 }
 
 // =============================================================================
@@ -279,7 +317,7 @@ model User {
   id            String    @id @default(cuid())
   email         String    @unique
   emailVerified DateTime?
-  passwordHash  String?   // bcrypt hash for credentials provider
+  passwordHash  String? // bcrypt hash for credentials provider
   name          String?
   image         String?
   role          UserRole
@@ -287,8 +325,8 @@ model User {
   updatedAt     DateTime  @updatedAt
 
   // NextAuth relations
-  accounts  Account[]
-  sessions  Session[]
+  accounts Account[]
+  sessions Session[]
 
   // Role-specific profiles (at most one will be populated per user)
   studentProfile     StudentProfile?
@@ -316,10 +354,13 @@ model User {
   overloadSignals OverloadSignal[]
 
   // Project Brain entries authored by this user
-  decisionLogs     DecisionLog[]
-  openQuestions    OpenQuestion[]
+  decisionLogs      DecisionLog[]
+  openQuestions     OpenQuestion[]
   assumptionRecords AssumptionRecord[]
   feedbackMemories  FeedbackMemory[]
+
+  // Formation batches created by this user (coordinators)
+  createdFormationBatches FormationBatch[] @relation("FormationBatchCreator")
 }
 
 // =============================================================================
@@ -327,25 +368,26 @@ model User {
 // =============================================================================
 
 model StudentProfile {
-  id        String  @id @default(cuid())
-  userId    String  @unique
+  id        String   @id @default(cuid())
+  userId    String   @unique
   studentId String? // university student ID number
-  year      Int?    // academic year (1-4)
+  year      Int? // academic year (1-4)
   faculty   String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user             User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   cognitiveProfile CognitiveProfile?
-  teamMemberships TeamMember[]
+  teamMemberships  TeamMember[]
+  intakeRecords    StudentIntake[]
 }
 
 model SupervisorProfile {
-  id         String  @id @default(cuid())
-  userId     String  @unique
+  id         String   @id @default(cuid())
+  userId     String   @unique
   title      String? // e.g. "Dr.", "Prof."
   department String?
-  bio        String? @db.Text
+  bio        String?  @db.Text
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -375,17 +417,17 @@ model CoordinatorProfile {
 // Fields like overloadSensitivity and supportMode should never be exposed
 // in team-level or supervisor-level queries without explicit consent.
 model CognitiveProfile {
-  id       String @id @default(cuid())
-  userId   String @unique // references StudentProfile.userId
+  id     String @id @default(cuid())
+  userId String @unique // references StudentProfile.userId
 
   // --- Communication & information style ---
   communicationStyle CommunicationStyle @default(STEP_BY_STEP)
 
   // --- Reminder preferences ---
-  reminderStyle      ReminderStyle      @default(STRUCTURED)
+  reminderStyle ReminderStyle @default(STRUCTURED)
 
   // --- Meeting / consultation preferences ---
-  preferredMeetingFormat MeetingFormat  @default(STRUCTURED_AGENDA)
+  preferredMeetingFormat MeetingFormat @default(STRUCTURED_AGENDA)
 
   // --- Load and pacing ---
   overloadSensitivity OverloadSensitivity @default(MEDIUM)
@@ -419,13 +461,13 @@ model CognitiveProfile {
 // A log of moments when a student reported or triggered an overload state.
 // Used to detect patterns and adjust support intensity.
 model OverloadSignal {
-  id          String          @id @default(cuid())
+  id          String         @id @default(cuid())
   userId      String
-  triggeredAt DateTime        @default(now())
+  triggeredAt DateTime       @default(now())
   // Brief context: "3 tasks assigned simultaneously", "unclear milestone scope", etc.
   context     String?
-  severity    SignalSeverity  @default(MEDIUM)
-  resolved    Boolean         @default(false)
+  severity    SignalSeverity @default(MEDIUM)
+  resolved    Boolean        @default(false)
   resolvedAt  DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -437,16 +479,16 @@ model OverloadSignal {
 // Per-user accessibility preferences. Any role can have this.
 // This drives UI-level adaptations: focus mode, font scale, motion, etc.
 model AccessibilitySetting {
-  id              String     @id @default(cuid())
-  userId          String     @unique
-  reducedMotion   Boolean    @default(false)
-  highContrast    Boolean    @default(false)
-  fontScale       String     @default("md") // sm | md | lg | xl
-  focusMode       Boolean    @default(false) // hides non-essential UI elements
-  lowEnergyMode   Boolean    @default(false) // simplifies layout, mutes notifications
-  digestMode      DigestMode @default(DAILY)
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+  id            String     @id @default(cuid())
+  userId        String     @unique
+  reducedMotion Boolean    @default(false)
+  highContrast  Boolean    @default(false)
+  fontScale     String     @default("md") // sm | md | lg | xl
+  focusMode     Boolean    @default(false) // hides non-essential UI elements
+  lowEnergyMode Boolean    @default(false) // simplifies layout, mutes notifications
+  digestMode    DigestMode @default(DAILY)
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
@@ -456,15 +498,20 @@ model AccessibilitySetting {
 // =============================================================================
 
 model Team {
-  id           String          @id @default(cuid())
-  name         String
-  slug         String          @unique
-  healthStatus TeamHealthStatus @default(ON_TRACK)
-  supervisorId String?
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id               String           @id @default(cuid())
+  name             String
+  slug             String           @unique
+  healthStatus     TeamHealthStatus @default(ON_TRACK)
+  supervisorId     String?
+  // Optional links to the academic term and formation batch that produced this team
+  academicTermId   String?
+  formationBatchId String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  supervisor SupervisorProfile? @relation("TeamSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  supervisor     SupervisorProfile? @relation("TeamSupervisor", fields: [supervisorId], references: [id], onDelete: SetNull)
+  academicTerm   AcademicTerm?      @relation(fields: [academicTermId], references: [id], onDelete: SetNull)
+  formationBatch FormationBatch?    @relation(fields: [formationBatchId], references: [id], onDelete: SetNull)
 
   members              TeamMember[]
   project              Project?
@@ -477,6 +524,8 @@ model Team {
 
   @@index([supervisorId])
   @@index([healthStatus])
+  @@index([academicTermId])
+  @@index([formationBatchId])
 }
 
 // A student's membership in a team. One student can technically be a member
@@ -486,7 +535,7 @@ model TeamMember {
   id        String         @id @default(cuid())
   teamId    String
   userId    String
-  profileId String         // FK to StudentProfile.id for direct profile access
+  profileId String // FK to StudentProfile.id for direct profile access
   role      TeamMemberRole @default(MEMBER)
   joinedAt  DateTime       @default(now())
 
@@ -508,10 +557,10 @@ model Project {
   createdAt   DateTime      @default(now())
   updatedAt   DateTime      @updatedAt
 
-  team             Team              @relation(fields: [teamId], references: [id], onDelete: Cascade)
-  milestones       Milestone[]
-  tasks            Task[]
-  contributionLogs ContributionLog[]
+  team                       Team                        @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  milestones                 Milestone[]
+  tasks                      Task[]
+  contributionLogs           ContributionLog[]
   contributionTypeBreakdowns ContributionTypeBreakdown[]
 
   // Project Brain
@@ -550,35 +599,35 @@ model Milestone {
 // =============================================================================
 
 model Task {
-  id          String        @id @default(cuid())
-  projectId   String
-  milestoneId String?       // optional: which milestone this task contributes to
-  title       String
-  description String?       @db.Text
+  id               String        @id @default(cuid())
+  projectId        String
+  milestoneId      String? // optional: which milestone this task contributes to
+  title            String
+  description      String?       @db.Text
   // "What does done look like?" — explicit acceptance criteria reduce ambiguity for
   // neurodivergent students who need concrete definitions of completion.
-  doneCriteria    String?   @db.Text
+  doneCriteria     String?       @db.Text
   // Why is this task currently blocked? Surfaced prominently in the workspace.
-  blockerNote     String?   @db.Text
+  blockerNote      String?       @db.Text
   // Subjective cognitive load 1–5 (1=quick, 5=heavy). Used for workload balance.
-  cognitiveLoad   Int?
-  status      TaskStatus    @default(TODO)
-  priority    PriorityLevel @default(MEDIUM)
-  dueDate     DateTime?
-  assigneeId  String?
+  cognitiveLoad    Int?
+  status           TaskStatus    @default(TODO)
+  priority         PriorityLevel @default(MEDIUM)
+  dueDate          DateTime?
+  assigneeId       String?
   // Estimated effort in minutes; used for workload balance calculations
   estimatedMinutes Int?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 
-  project      Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  milestone    Milestone?       @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
-  assignee     User?            @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
+  project       Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  milestone     Milestone?         @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+  assignee      User?              @relation("TaskAssignee", fields: [assigneeId], references: [id], onDelete: SetNull)
   decomposition TaskDecomposition?
   // Dependencies where this task is the "source" (this task depends on others)
-  outgoingDeps DependencyLink[] @relation("SourceTask")
+  outgoingDeps  DependencyLink[]   @relation("SourceTask")
   // Dependencies where this task is the "target" (other tasks depend on this)
-  incomingDeps DependencyLink[] @relation("TargetTask")
+  incomingDeps  DependencyLink[]   @relation("TargetTask")
 
   @@index([projectId])
   @@index([milestoneId])
@@ -590,15 +639,15 @@ model Task {
 // AI-generated (or manually created) step-by-step breakdown of a complex task.
 // Especially useful for students who find it hard to start a large, vague task.
 model TaskDecomposition {
-  id        String @id @default(cuid())
-  taskId    String @unique
+  id     String @id @default(cuid())
+  taskId String @unique
 
   // JSON array of step objects: [{title, estimatedMinutes, orderIndex, done}]
-  steps              Json
+  steps                 Json
   estimatedTotalMinutes Int?
-  generatedBy        String   @default("rule-v1") // model or rule set version
-  generatedAt        DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  generatedBy           String   @default("rule-v1") // model or rule set version
+  generatedAt           DateTime @default(now())
+  updatedAt             DateTime @updatedAt
 
   task Task @relation(fields: [taskId], references: [id], onDelete: Cascade)
 }
@@ -607,15 +656,15 @@ model TaskDecomposition {
 // Stored with a polymorphic entityType + entityId rather than hard FKs
 // because ambiguity can attach to many different entity types.
 model AmbiguityFlag {
-  id          String        @id @default(cuid())
+  id          String         @id @default(cuid())
   entityType  AIEntityType
-  entityId    String        // ID of the flagged entity (no hard FK — polymorphic)
-  description String        @db.Text // What specifically is ambiguous
-  flaggedBy   String        // userId or "system"
+  entityId    String // ID of the flagged entity (no hard FK — polymorphic)
+  description String         @db.Text // What specifically is ambiguous
+  flaggedBy   String // userId or "system"
   severity    SignalSeverity @default(MEDIUM)
-  flaggedAt   DateTime      @default(now())
+  flaggedAt   DateTime       @default(now())
   resolvedAt  DateTime?
-  resolution  String?       @db.Text
+  resolution  String?        @db.Text
 
   @@index([entityType, entityId])
   @@index([flaggedAt])
@@ -624,8 +673,8 @@ model AmbiguityFlag {
 // Explicit dependency between two tasks. Discovered by users or the AI layer.
 model DependencyLink {
   id             String         @id @default(cuid())
-  sourceTaskId   String         // The task that has the dependency
-  targetTaskId   String         // The task it depends on
+  sourceTaskId   String // The task that has the dependency
+  targetTaskId   String // The task it depends on
   dependencyType DependencyType @default(BLOCKS)
   discoveredBy   String         @default("user") // "user" | "rule-v1"
   note           String?
@@ -649,7 +698,7 @@ model ContributionLog {
   userId           String
   description      String           @db.Text
   contributionType ContributionType @default(OTHER)
-  hours            Float?           // optional — used for effort-weighted fairness
+  hours            Float? // optional — used for effort-weighted fairness
   loggedAt         DateTime         @default(now())
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -684,16 +733,16 @@ model ContributionTypeBreakdown {
 // Append-only health snapshots. Used to build health trend charts.
 // The most recent snapshot reflects current health; older ones are history.
 model TeamHealthSignal {
-  id                      String          @id @default(cuid())
-  teamId                  String
-  healthStatus            TeamHealthStatus
-  overdueTaskCount        Int
-  totalOpenTasks          Int
-  activeMemberCount       Int             // members with activity in last 7 days
-  hasActivityThisWeek     Boolean
-  nextMilestoneIsOnTrack  Boolean
-  workloadIsFair          Boolean         // simple flag based on task distribution
-  recordedAt              DateTime        @default(now())
+  id                     String           @id @default(cuid())
+  teamId                 String
+  healthStatus           TeamHealthStatus
+  overdueTaskCount       Int
+  totalOpenTasks         Int
+  activeMemberCount      Int // members with activity in last 7 days
+  hasActivityThisWeek    Boolean
+  nextMilestoneIsOnTrack Boolean
+  workloadIsFair         Boolean // simple flag based on task distribution
+  recordedAt             DateTime         @default(now())
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
 
@@ -722,14 +771,14 @@ model WorkloadSnapshot {
 // A logged event indicating social friction or disengagement within the team.
 // These feed into the team health computation and AI insight generation.
 model SocialFrictionEvent {
-  id             String           @id @default(cuid())
+  id             String            @id @default(cuid())
   teamId         String
   eventType      FrictionEventType
-  affectedUserId String?          // null = whole team
-  context        String?          @db.Text
-  severity       SignalSeverity   @default(MEDIUM)
-  flaggedAt      DateTime         @default(now())
-  resolved       Boolean          @default(false)
+  affectedUserId String? // null = whole team
+  context        String?           @db.Text
+  severity       SignalSeverity    @default(MEDIUM)
+  flaggedAt      DateTime          @default(now())
+  resolved       Boolean           @default(false)
   resolvedAt     DateTime?
 
   team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
@@ -743,20 +792,20 @@ model SocialFrictionEvent {
 // =============================================================================
 
 model ConsultationAvailability {
-  id           String   @id @default(cuid())
-  supervisorId String
-  startTime    DateTime
-  endTime      DateTime
-  slotMinutes  Int      @default(30)
-  isRecurring  Boolean  @default(false)
-  notes        String?
-  meetingMode  String?  @default("in-person") // "in-person" | "online" | "hybrid"
-  locationOrLink String?  // physical room or online meeting link
-  isClosed     Boolean  @default(false)     // supervisor can close a slot without deleting
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id             String   @id @default(cuid())
+  supervisorId   String
+  startTime      DateTime
+  endTime        DateTime
+  slotMinutes    Int      @default(30)
+  isRecurring    Boolean  @default(false)
+  notes          String?
+  meetingMode    String?  @default("in-person") // "in-person" | "online" | "hybrid"
+  locationOrLink String? // physical room or online meeting link
+  isClosed       Boolean  @default(false) // supervisor can close a slot without deleting
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  supervisor SupervisorProfile   @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  supervisor SupervisorProfile     @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
   bookings   ConsultationBooking[]
 
   @@index([supervisorId])
@@ -764,32 +813,32 @@ model ConsultationAvailability {
 }
 
 model ConsultationBooking {
-  id             String        @id @default(cuid())
-  teamId         String
-  availabilityId String
-  slotStart      DateTime
-  slotEnd        DateTime
-  status         BookingStatus @default(PENDING)
+  id                  String        @id @default(cuid())
+  teamId              String
+  availabilityId      String
+  slotStart           DateTime
+  slotEnd             DateTime
+  status              BookingStatus @default(PENDING)
   // The agenda entered by the team before the meeting.
   // Structured pre-consultation input reduces anxiety for neurodivergent students.
-  agenda         String?       @db.Text
+  agenda              String?       @db.Text
   // What the team wants to achieve in this meeting (structured booking context)
-  purpose        String?       @db.Text
+  purpose             String?       @db.Text
   // Blockers or stuck points the team wants to discuss
-  blockerContext String?       @db.Text
+  blockerContext      String?       @db.Text
   // Specific questions or topics the team wants the supervisor to address
-  topicsForSupervisor String?  @db.Text
+  topicsForSupervisor String?       @db.Text
   // Milestone this consultation is related to (optional)
-  relatedMilestoneId String?
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  relatedMilestoneId  String?
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
 
   team         Team                     @relation(fields: [teamId], references: [id], onDelete: Cascade)
   availability ConsultationAvailability @relation(fields: [availabilityId], references: [id], onDelete: Cascade)
 
-  meetingNote        MeetingNote?
-  brief              ConsultationBrief?
-  feedbackParse      SupervisorFeedbackParse?
+  meetingNote   MeetingNote?
+  brief         ConsultationBrief?
+  feedbackParse SupervisorFeedbackParse?
 
   @@index([teamId])
   @@index([availabilityId])
@@ -823,9 +872,9 @@ model ConsultationBrief {
   bookingId            String   @unique
   teamProgressSummary  String   @db.Text
   // JSON arrays: see lib/services/supervisor-bridge.ts for shape definitions
-  suggestedAgendaItems Json     // string[]
-  risksToHighlight     Json     // { risk: string; severity: string }[]
-  unresolvedQuestions  Json     // string[]
+  suggestedAgendaItems Json // string[]
+  risksToHighlight     Json // { risk: string; severity: string }[]
+  unresolvedQuestions  Json // string[]
   generatedAt          DateTime @default(now())
   generatedBy          String   @default("rule-v1")
 
@@ -836,21 +885,21 @@ model ConsultationBrief {
 // The AI bridge extracts action items, expectations, and ambiguities
 // so students receive clear, neurodivergent-friendly outputs — not raw academic prose.
 model SupervisorFeedbackParse {
-  id           String   @id @default(cuid())
-  bookingId    String   @unique
-  rawFeedback  String   @db.Text
+  id                  String   @id @default(cuid())
+  bookingId           String   @unique
+  rawFeedback         String   @db.Text
   // Structured outputs — see lib/services/supervisor-bridge.ts for type shapes
-  actionItems        Json   // ActionItem[] — { title, suggestedOwnerLabel, priority, dueHint, riskIfIgnored, whatGoodLooksLike }[]
-  expectations       Json   // string[] — what the supervisor expects to see next
-  ambiguities        Json   // string[] — parts of the feedback that remain unclear
-  hiddenAssumptions  Json   @default("[]") // string[] — things supervisor assumed but didn't say
-  qualityExpectations Json  @default("[]") // QualityExpectation[] — { area, standard, example }[]
-  deadlineWarnings   Json   @default("[]") // DeadlineWarning[] — { text, urgencyLevel, extractedDate }[]
-  suggestedFirstSteps Json  @default("[]") // string[] — ordered first 3 actions
-  studentSummary     String? @db.Text      // plain-English 2-3 sentence summary for students
-  clarityScore Float?   // 0–1 estimate of how clear the raw feedback was
-  parsedAt     DateTime @default(now())
-  parsedBy     String   @default("rule-v1")
+  actionItems         Json // ActionItem[] — { title, suggestedOwnerLabel, priority, dueHint, riskIfIgnored, whatGoodLooksLike }[]
+  expectations        Json // string[] — what the supervisor expects to see next
+  ambiguities         Json // string[] — parts of the feedback that remain unclear
+  hiddenAssumptions   Json     @default("[]") // string[] — things supervisor assumed but didn't say
+  qualityExpectations Json     @default("[]") // QualityExpectation[] — { area, standard, example }[]
+  deadlineWarnings    Json     @default("[]") // DeadlineWarning[] — { text, urgencyLevel, extractedDate }[]
+  suggestedFirstSteps Json     @default("[]") // string[] — ordered first 3 actions
+  studentSummary      String?  @db.Text // plain-English 2-3 sentence summary for students
+  clarityScore        Float? // 0–1 estimate of how clear the raw feedback was
+  parsedAt            DateTime @default(now())
+  parsedBy            String   @default("rule-v1")
 
   booking ConsultationBooking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
 }
@@ -863,17 +912,17 @@ model SupervisorFeedbackParse {
 // =============================================================================
 
 model DecisionLog {
-  id         String    @id @default(cuid())
-  projectId  String
-  title      String
-  rationale  String    @db.Text
-  madeBy     String    // userId
-  madeAt     DateTime  @default(now())
-  impact     String?
+  id           String   @id @default(cuid())
+  projectId    String
+  title        String
+  rationale    String   @db.Text
+  madeBy       String // userId
+  madeAt       DateTime @default(now())
+  impact       String?
   // Link to a specific task that triggered or implements this decision
   linkedTaskId String?
-  isReversed Boolean   @default(false)
-  reversalNote String? @db.Text
+  isReversed   Boolean  @default(false)
+  reversalNote String?  @db.Text
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author  User    @relation(fields: [madeBy], references: [id], onDelete: Cascade)
@@ -886,34 +935,34 @@ model OpenQuestion {
   id         String        @id @default(cuid())
   projectId  String
   question   String        @db.Text
-  raisedBy   String        // userId
+  raisedBy   String // userId
   raisedAt   DateTime      @default(now())
   priority   PriorityLevel @default(MEDIUM)
   resolvedAt DateTime?
   resolution String?       @db.Text
 
-  project   Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  raisedByUser User @relation(fields: [raisedBy], references: [id], onDelete: Cascade)
+  project      Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  raisedByUser User    @relation(fields: [raisedBy], references: [id], onDelete: Cascade)
 
   @@index([projectId])
   @@index([resolvedAt])
 }
 
 model AssumptionRecord {
-  id              String    @id @default(cuid())
-  projectId       String
-  statement       String    @db.Text
-  loggedBy        String    // userId
-  loggedAt        DateTime  @default(now())
-  validatedAt     DateTime?
-  isInvalidated   Boolean   @default(false)
-  invalidationNote String?  @db.Text
+  id                String    @id @default(cuid())
+  projectId         String
+  statement         String    @db.Text
+  loggedBy          String // userId
+  loggedAt          DateTime  @default(now())
+  validatedAt       DateTime?
+  isInvalidated     Boolean   @default(false)
+  invalidationNote  String?   @db.Text
   // Optional link to the milestone this assumption underpins
   linkedMilestoneId String?
 
-  project          Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  loggedByUser     User       @relation(fields: [loggedBy], references: [id], onDelete: Cascade)
-  linkedMilestone  Milestone? @relation("MilestoneAssumptions", fields: [linkedMilestoneId], references: [id], onDelete: SetNull)
+  project         Project    @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  loggedByUser    User       @relation(fields: [loggedBy], references: [id], onDelete: Cascade)
+  linkedMilestone Milestone? @relation("MilestoneAssumptions", fields: [linkedMilestoneId], references: [id], onDelete: SetNull)
 
   @@index([projectId])
 }
@@ -921,16 +970,16 @@ model AssumptionRecord {
 // Stores supervisor feedback as a memory item so it can be referenced,
 // searched, and surfaced by the AI bridge later.
 model FeedbackMemory {
-  id             String   @id @default(cuid())
-  projectId      String
-  authorId       String   // supervisor userId
-  content        String   @db.Text
-  source         String   @default("meeting") // meeting | email | comment
-  recordedAt     DateTime @default(now())
+  id              String   @id @default(cuid())
+  projectId       String
+  authorId        String // supervisor userId
+  content         String   @db.Text
+  source          String   @default("meeting") // meeting | email | comment
+  recordedAt      DateTime @default(now())
   linkedBookingId String?
-  sentiment      String?  // positive | constructive | critical
+  sentiment       String? // positive | constructive | critical
   // AI-extracted themes from the feedback: ["architecture", "deadline", "scope"]
-  keyThemes      Json?
+  keyThemes       Json?
 
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
   author  User    @relation(fields: [authorId], references: [id], onDelete: Cascade)
@@ -948,18 +997,18 @@ model FeedbackMemory {
 // Stored so students can review and acknowledge insights, and so we can measure
 // how useful/accurate the AI layer is over time.
 model AIInsight {
-  id          String        @id @default(cuid())
-  entityType  AIEntityType
-  entityId    String        // polymorphic — no hard FK
-  insightType InsightType
-  title       String
-  body        String        @db.Text
+  id           String       @id @default(cuid())
+  entityType   AIEntityType
+  entityId     String // polymorphic — no hard FK
+  insightType  InsightType
+  title        String
+  body         String       @db.Text
   // 0–1 confidence estimate from the generating system
-  confidence  Float?
-  acknowledged Boolean     @default(false)
-  dismissedAt DateTime?
-  generatedBy String       @default("rule-v1")
-  createdAt   DateTime     @default(now())
+  confidence   Float?
+  acknowledged Boolean      @default(false)
+  dismissedAt  DateTime?
+  generatedBy  String       @default("rule-v1")
+  createdAt    DateTime     @default(now())
 
   @@index([entityType, entityId])
   @@index([insightType])
@@ -1004,13 +1053,13 @@ model ActivityLog {
   id         String   @id @default(cuid())
   teamId     String?
   projectId  String?
-  userId     String?  // actor (the user who performed the action)
-  action     String   // e.g. "task.created", "booking.confirmed"
-  entity     String?  // model name: "Task" | "ConsultationBooking" etc.
+  userId     String? // actor (the user who performed the action)
+  action     String // e.g. "task.created", "booking.confirmed"
+  entity     String? // model name: "Task" | "ConsultationBooking" etc.
   entityId   String?
   title      String   @default("")
   message    String?  @db.Text
-  visibility String   @default("TEAM")  // PRIVATE | TEAM | SUPERVISOR | COORDINATOR | SYSTEM
+  visibility String   @default("TEAM") // PRIVATE | TEAM | SUPERVISOR | COORDINATOR | SYSTEM
   metadata   Json?
   createdAt  DateTime @default(now())
 
@@ -1025,4 +1074,127 @@ model ActivityLog {
   @@index([action])
   @@index([visibility])
   @@index([createdAt])
+}
+
+// =============================================================================
+// ACADEMIC TERM FORMATION
+// Part 2: semester/intake/batch foundation for the intelligent team formation engine.
+// These models capture the when (AcademicTerm), who (StudentIntake), and how
+// (FormationBatch + FormationRuleSet) of team formation — without containing the
+// matching algorithm itself, which is a later part.
+//
+// Privacy note: CognitiveProfile remains entirely separate and is never joined
+// here. Formation setup pages must only use operational data.
+// =============================================================================
+
+// An academic term (semester/year) that scopes a cohort of students and formation runs.
+model AcademicTerm {
+  id            String             @id @default(cuid())
+  name          String
+  code          String             @unique
+  academicYear  Int?
+  semesterLabel String?
+  startsAt      DateTime?
+  endsAt        DateTime?
+  status        AcademicTermStatus @default(PLANNED)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  studentIntakes   StudentIntake[]
+  formationBatches FormationBatch[]
+  teams            Team[]
+}
+
+// One row per student per academic term. Tracks intake status through the formation pipeline.
+model StudentIntake {
+  id               String              @id @default(cuid())
+  termId           String
+  studentProfileId String
+  status           StudentIntakeStatus @default(PROFILE_PENDING)
+  programme        String?
+  cohortLabel      String?
+  source           String?             @default("manual")
+  notes            String?             @db.Text
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  term             AcademicTerm            @relation(fields: [termId], references: [id], onDelete: Cascade)
+  studentProfile   StudentProfile          @relation(fields: [studentProfileId], references: [id], onDelete: Cascade)
+  batchMemberships FormationBatchStudent[]
+
+  @@unique([termId, studentProfileId])
+  @@index([termId])
+  @@index([studentProfileId])
+  @@index([status])
+}
+
+// A formation run: one batch groups a set of students to be formed into teams.
+// Multiple batches can exist per term (e.g. re-runs, late additions).
+model FormationBatch {
+  id             String               @id @default(cuid())
+  termId         String
+  name           String
+  status         FormationBatchStatus @default(DRAFT)
+  targetTeamSize Int                  @default(4)
+  minTeamSize    Int                  @default(3)
+  maxTeamSize    Int                  @default(5)
+  createdById    String?
+  notes          String?              @db.Text
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+
+  term      AcademicTerm @relation(fields: [termId], references: [id], onDelete: Cascade)
+  createdBy User?        @relation("FormationBatchCreator", fields: [createdById], references: [id], onDelete: SetNull)
+
+  students FormationBatchStudent[]
+  ruleSet  FormationRuleSet?
+  teams    Team[]
+
+  @@index([termId])
+  @@index([status])
+  @@index([createdById])
+}
+
+// Each student included in a formation batch, with per-student override options.
+model FormationBatchStudent {
+  id              String                      @id @default(cuid())
+  batchId         String
+  studentIntakeId String
+  status          FormationBatchStudentStatus @default(INCLUDED)
+  locked          Boolean                     @default(false)
+  exclusionReason String?                     @db.Text
+  createdAt       DateTime                    @default(now())
+  updatedAt       DateTime                    @updatedAt
+
+  batch         FormationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  studentIntake StudentIntake  @relation(fields: [studentIntakeId], references: [id], onDelete: Cascade)
+
+  @@unique([batchId, studentIntakeId])
+  @@index([batchId])
+  @@index([studentIntakeId])
+  @@index([status])
+}
+
+// Configurable weights for the formation algorithm.
+// Stored per batch so each run can use different priorities.
+// Weights are integers — the algorithm normalises them at runtime.
+// supportCompatibilityWeight is intentionally low and is used only as a
+// private, safe support signal (not exposing cognitive profile specifics).
+model FormationRuleSet {
+  id                         String   @id @default(cuid())
+  batchId                    String   @unique
+  skillWeight                Int      @default(30)
+  scheduleWeight             Int      @default(20)
+  roleWeight                 Int      @default(15)
+  preferenceWeight           Int      @default(15)
+  capacityWeight             Int      @default(10)
+  supportCompatibilityWeight Int      @default(5)
+  supervisorCapacityWeight   Int      @default(5)
+  // JSON: { "requiredRoles": ["backend", "frontend", "ux"], "mandatorySkills": ["Python"] }
+  requiredCoverage           Json?
+  notes                      String?  @db.Text
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+
+  batch FormationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
 }

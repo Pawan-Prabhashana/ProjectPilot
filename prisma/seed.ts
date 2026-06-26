@@ -330,6 +330,120 @@ async function main() {
     });
   }
 
+  // ── Part 2: Academic Term Formation Foundation ────────────────────────────────
+
+  // 1. Academic term
+  const term = await prisma.academicTerm.upsert({
+    where: { code: '2026-S1-CAPSTONE' },
+    update: {},
+    create: {
+      name: '2026 Semester 1 Capstone Programme',
+      code: '2026-S1-CAPSTONE',
+      academicYear: 2026,
+      semesterLabel: 'Semester 1',
+      startsAt: new Date('2026-02-01'),
+      endsAt: new Date('2026-06-30'),
+      status: 'ACTIVE',
+    },
+  });
+  console.log('\n  ✓ AcademicTerm:', term.code);
+
+  // 2. Formation batch (createdBy the coordinator)
+  const batch = await prisma.formationBatch.upsert({
+    where: { id: 'seed-batch-2026-s1' },
+    update: {},
+    create: {
+      id: 'seed-batch-2026-s1',
+      termId: term.id,
+      name: 'Initial 2026 S1 Formation Batch',
+      status: 'READY',
+      targetTeamSize: 4,
+      minTeamSize: 3,
+      maxTeamSize: 5,
+      createdById: coordinator.id,
+      notes: 'Seed batch for the 2026 S1 capstone cohort. Links all demo teams to this formation run.',
+    },
+  });
+  console.log('  ✓ FormationBatch:', batch.name);
+
+  // 3. Formation rule set (default weights)
+  await prisma.formationRuleSet.upsert({
+    where: { batchId: batch.id },
+    update: {},
+    create: {
+      batchId: batch.id,
+      skillWeight: 30,
+      scheduleWeight: 20,
+      roleWeight: 15,
+      preferenceWeight: 15,
+      capacityWeight: 10,
+      supportCompatibilityWeight: 5,
+      supervisorCapacityWeight: 5,
+      notes: 'Default weights. supportCompatibilityWeight uses only safe, private support preferences — never raw cognitive profile data.',
+    },
+  });
+  console.log('  ✓ FormationRuleSet created');
+
+  // 4. Link all seeded teams to this term and batch
+  const allSeededTeams = await prisma.team.findMany({
+    where: { slug: { in: ['team-vertex', 'team-nova', 'team-horizon', 'team-pulse'] } },
+  });
+  for (const t of allSeededTeams) {
+    await prisma.team.update({
+      where: { id: t.id },
+      data: { academicTermId: term.id, formationBatchId: batch.id },
+    });
+  }
+  console.log('  ✓ Teams linked to term and batch');
+
+  // 5. StudentIntake rows for all demo students (idempotent via @@unique[termId, studentProfileId])
+  //    Students already in seeded teams → ASSIGNED_TO_TEAM
+  const allDemoStudentEmails = [
+    'aisha@demo.com', 'ruvan@demo.com', 'thilini@demo.com',
+    'sachith@demo.com', 'kavya@demo.com', 'milan@demo.com',
+    'nadeesha@demo.com', 'chamath@demo.com', 'ishani@demo.com',
+    'dinusha@demo.com', 'sahan@demo.com', 'vishmi@demo.com',
+  ];
+
+  const intakeMap: Record<string, string> = {}; // email → StudentIntake.id
+
+  for (const email of allDemoStudentEmails) {
+    const studentUser = await prisma.user.findUnique({ where: { email } });
+    if (!studentUser) continue;
+    const studentProfile = await prisma.studentProfile.findUnique({ where: { userId: studentUser.id } });
+    if (!studentProfile) continue;
+
+    const intake = await prisma.studentIntake.upsert({
+      where: { termId_studentProfileId: { termId: term.id, studentProfileId: studentProfile.id } },
+      update: {},
+      create: {
+        termId: term.id,
+        studentProfileId: studentProfile.id,
+        status: 'ASSIGNED_TO_TEAM',
+        programme: 'BSc (Hons) Computing',
+        cohortLabel: '2026-S1',
+        source: 'manual',
+      },
+    });
+    intakeMap[email] = intake.id;
+  }
+  console.log('  ✓ StudentIntake rows created for', Object.keys(intakeMap).length, 'students');
+
+  // 6. FormationBatchStudent rows for each intake student
+  for (const intakeId of Object.values(intakeMap)) {
+    await prisma.formationBatchStudent.upsert({
+      where: { batchId_studentIntakeId: { batchId: batch.id, studentIntakeId: intakeId } },
+      update: {},
+      create: {
+        batchId: batch.id,
+        studentIntakeId: intakeId,
+        status: 'ASSIGNED',
+        locked: false,
+      },
+    });
+  }
+  console.log('  ✓ FormationBatchStudent rows created');
+
   console.log('\n✅  Seeding complete!\n');
   console.log('Demo credentials (all passwords: demo1234)');
   console.log('─'.repeat(50));
