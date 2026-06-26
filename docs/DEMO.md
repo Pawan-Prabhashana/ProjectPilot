@@ -1,7 +1,15 @@
-# ProjectPilot Neuro — Demo Guide
+# ProjectPilot — Demo Guide
 
 > This guide describes the recommended demo walkthrough, demo credentials, and key talking points
 > for judges, examiners, and demonstration audiences.
+
+> **Product framing:** ProjectPilot is an intelligent capstone team formation, role assignment, task
+> allocation, and conflict detection platform — with neurodivergent-first support built in as a private
+> layer. This demo focuses on the operational foundation and the student support experience that exist
+> today; the intelligent formation engine is the planned next module (see
+> [`MENTOR_REQUIREMENT_MAPPING.md`](MENTOR_REQUIREMENT_MAPPING.md)). When demoing the **Coordinator**
+> account, highlight the formation-readiness signals: unassigned students, team setup gaps, supervisor
+> capacity, and team health.
 
 ---
 

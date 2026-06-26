@@ -1,12 +1,22 @@
-# ProjectPilot Neuro
+# ProjectPilot
 
-**A neurodivergent-first academic project management and supervisor consultation platform.**
+**An intelligent capstone team formation, role assignment, task allocation, and conflict detection platform — with neurodivergent-first support built in.**
 
-ProjectPilot Neuro helps university student teams manage final-year projects with cognitive support
-built into every layer. It is designed specifically for neurodivergent students — not as an
-accessibility add-on to a generic system, but as a platform whose entire architecture is shaped
-by the real challenges of executive function, indirect communication, and cognitive load in
-academic environments.
+ProjectPilot helps faculty coordinators form balanced student project teams, assign suitable roles,
+distribute tasks fairly, and detect risks such as skill gaps, overloaded students, duplicate project
+choices, and schedule conflicts. It replaces the error-prone manual process of forming hundreds of
+capstone students each semester with a system that can match individuals by skill, schedule, and role
+suitability — then keep teams on track through delivery.
+
+Neurodivergent-first support remains a core differentiator: a **private** support layer gives students
+clearer communication, lower cognitive load, and structured task guidance. This support data is never
+exposed to coordinators or supervisors — it is used only as safe support preferences for the student.
+
+> **Status:** The operational foundation (role-based dashboards, teams, supervisors, consultations,
+> team health, and the neurodivergent support toolkit) is in place. The intelligent formation engine,
+> skill/schedule matching, role assignment, and capacity-aware task allocation are the planned next
+> modules — see [`docs/MENTOR_REQUIREMENT_MAPPING.md`](docs/MENTOR_REQUIREMENT_MAPPING.md) for the
+> full requirement-to-roadmap mapping.
 
 ---
 
@@ -44,7 +54,11 @@ Full demo walkthrough: [`docs/DEMO.md`](docs/DEMO.md)
 
 ---
 
-## What ProjectPilot Neuro Does
+## What ProjectPilot Does
+
+> **Coordinators** form and oversee balanced teams · **Supervisors** guide and review · **Students**
+> deliver with neurodivergent-friendly support. The capabilities below are the operational foundation;
+> the intelligent formation engine builds directly on this data.
 
 ### For Students
 
@@ -82,9 +96,14 @@ Full demo walkthrough: [`docs/DEMO.md`](docs/DEMO.md)
 
 | Feature | What it does |
 |---------|-------------|
-| **Multi-team Overview** | Health summary across all supervised teams |
+| **Formation Readiness Overview** | Platform-wide counts, setup health, unassigned students, and team/supervisor/project gaps |
+| **Team Management** | Operational overview of every team — membership, leadership, supervisor coverage, project status |
+| **Supervisor Management** | Supervisor capacity and team coverage overview, ready for capacity-aware allocation |
 | **At-Risk Flags** | Critical and at-risk team detection with counts |
 | **Consultation Overview** | All upcoming and past consultations across teams |
+
+> **Planned next modules:** intelligent team formation, skill/schedule matching, role assignment
+> engine, capacity-aware task allocation, gap detection, and a schedule conflict detector.
 
 ---
 

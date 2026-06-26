@@ -34,7 +34,7 @@ export type CoordinatorDashboard = {
     teamsWithoutSupervisor: number;
     teamsWithoutProject: number;
     upcomingConsultations: number;
-    unresolveedFrictionEvents: number;
+    unresolvedFrictionEvents: number;
     studentsWithoutTeam: number;
     supervisorsWithNoTeams: number;
   };
@@ -52,7 +52,7 @@ export async function getCoordinatorDashboard(): Promise<CoordinatorDashboard> {
     teams,
     totalActiveProjects,
     upcomingConsultations,
-    unresolveedFrictionEvents,
+    unresolvedFrictionEvents,
     studentsWithoutTeam,
     supervisorsWithNoTeams,
   ] = await Promise.all([
@@ -135,7 +135,7 @@ export async function getCoordinatorDashboard(): Promise<CoordinatorDashboard> {
       teamsWithoutSupervisor,
       teamsWithoutProject,
       upcomingConsultations,
-      unresolveedFrictionEvents,
+      unresolvedFrictionEvents,
       studentsWithoutTeam,
       supervisorsWithNoTeams,
     },

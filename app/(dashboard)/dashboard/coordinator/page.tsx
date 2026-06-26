@@ -51,8 +51,15 @@ export default async function CoordinatorDashboardPage() {
     <div className="space-y-6">
       <PageHeader
         title="Coordinator Dashboard"
-        description="Platform-wide overview. Manage teams, supervisors, and operational health."
+        description="Your control centre for capstone team formation — track formation readiness, unassigned students, supervisor and project setup gaps, team health, formation conflicts, and workload fairness."
       />
+
+      <InfoCallout variant="info" title="Planned next modules">
+        Intelligent team formation, skill-and-schedule matching, role assignment, and capacity-aware
+        task allocation are being built on top of the operational data shown here. Today this dashboard
+        gives you the formation-readiness signals (unassigned students, setup gaps, and team health)
+        that those modules will draw from.
+      </InfoCallout>
 
       {/* Section A: System Overview */}
       <section>
@@ -183,9 +190,9 @@ export default async function CoordinatorDashboardPage() {
       )}
 
       {/* Friction events alert */}
-      {stats.unresolveedFrictionEvents > 0 && (
+      {stats.unresolvedFrictionEvents > 0 && (
         <InfoCallout variant="warning" title="Unresolved friction events">
-          {stats.unresolveedFrictionEvents} social friction event{stats.unresolveedFrictionEvents !== 1 ? 's' : ''} are
+          {stats.unresolvedFrictionEvents} social friction event{stats.unresolvedFrictionEvents !== 1 ? 's' : ''} are
           unresolved across teams.
         </InfoCallout>
       )}
@@ -280,8 +287,7 @@ export default async function CoordinatorDashboardPage() {
             href="/dashboard/supervisor-management"
             icon={<Settings className="h-4 w-4 text-slate-500" />}
             title="Supervisor Management"
-            description="Assign supervisors to teams and review supervisor capacity."
-            comingSoon
+            description="Review supervisor capacity and team assignment coverage ahead of intelligent formation."
           />
           <OperationCard
             href="/dashboard/consultations"
@@ -329,7 +335,7 @@ function computeSetupHealthScore(
     teamsWithoutProject: number;
     studentsWithoutTeam: number;
     supervisorsWithNoTeams: number;
-    unresolveedFrictionEvents: number;
+    unresolvedFrictionEvents: number;
   },
   setupGapsCount: number
 ): SetupHealthResult {
@@ -370,9 +376,9 @@ function computeSetupHealthScore(
     factors.push({ text: `${stats.supervisorsWithNoTeams} supervisor${stats.supervisorsWithNoTeams !== 1 ? 's have' : ' has'} no teams assigned`, positive: false });
   }
 
-  if (stats.unresolveedFrictionEvents > 0) {
-    score -= Math.min(stats.unresolveedFrictionEvents * 5, 15);
-    factors.push({ text: `${stats.unresolveedFrictionEvents} unresolved friction event${stats.unresolveedFrictionEvents !== 1 ? 's' : ''} across teams`, positive: false });
+  if (stats.unresolvedFrictionEvents > 0) {
+    score -= Math.min(stats.unresolvedFrictionEvents * 5, 15);
+    factors.push({ text: `${stats.unresolvedFrictionEvents} unresolved friction event${stats.unresolvedFrictionEvents !== 1 ? 's' : ''} across teams`, positive: false });
   }
 
   if (setupGapsCount === 0) {

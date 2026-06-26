@@ -207,7 +207,7 @@ export type CoordinatorDashboardSummary = {
   totalActiveTeams: number;
   upcomingConsultationsCount: number;
   flaggedTeamsCount: number;
-  unresolveedFrictionEvents: number;
+  unresolvedFrictionEvents: number;
 };
 
 export async function getCoordinatorDashboardSummary(): Promise<CoordinatorDashboardSummary> {
@@ -218,7 +218,7 @@ export async function getCoordinatorDashboardSummary(): Promise<CoordinatorDashb
     totalActiveTeams,
     upcomingConsultationsCount,
     flaggedTeamsCount,
-    unresolveedFrictionEvents,
+    unresolvedFrictionEvents,
   ] = await Promise.all([
     prisma.user.count(),
     prisma.user.count({ where: { role: 'STUDENT' } }),
@@ -238,7 +238,7 @@ export async function getCoordinatorDashboardSummary(): Promise<CoordinatorDashb
     totalActiveTeams,
     upcomingConsultationsCount,
     flaggedTeamsCount,
-    unresolveedFrictionEvents,
+    unresolvedFrictionEvents,
   };
 }
 
