@@ -209,7 +209,12 @@ export async function getFormationWorkspaceRun(runId: string): Promise<Formation
     resolved: w.resolved,
   });
 
-  const draftTeams: DraftTeamView[] = run.draftTeams.map((dt) => ({
+  const draftTeams: DraftTeamView[] = run.draftTeams.map((dt) => {
+    const meta = (dt.metadata ?? {}) as {
+      supportRoutineHints?: string[];
+      roleCoverage?: DraftTeamView['roleCoverage'];
+    };
+    return {
     id: dt.id,
     name: dt.name,
     status: dt.status,
@@ -228,7 +233,8 @@ export async function getFormationWorkspaceRun(runId: string): Promise<Formation
       overallScore: dt.overallScore,
     },
     explanation: dt.explanation,
-    supportRoutineHints: [],
+    supportRoutineHints: Array.isArray(meta.supportRoutineHints) ? meta.supportRoutineHints : [],
+    roleCoverage: meta.roleCoverage ?? null,
     members: dt.members.map(
       (m): DraftMemberView => ({
         id: m.id,
@@ -242,7 +248,8 @@ export async function getFormationWorkspaceRun(runId: string): Promise<Formation
       })
     ),
     warnings: dt.warnings.map(toWarningView),
-  }));
+    };
+  });
 
   const runOverview: FormationRunOverview = {
     id: run.id,

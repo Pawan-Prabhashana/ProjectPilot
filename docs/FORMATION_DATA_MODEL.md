@@ -211,6 +211,25 @@ and `ASSIGNED` respectively.
 
 See `docs/COORDINATOR_FORMATION_WORKSPACE.md` for full details.
 
+### Part 7 — Role Suitability Engine (done)
+
+Part 7 deepens role assignment without new tables — it reuses existing fields:
+
+- **`DraftTeamMember`**: `suggestedRoleKey` / `suggestedRoleLabel` now come from the 13-role
+  suitability catalogue; `roleConfidence` holds the 0–100 suitability score; `explanation` holds the
+  "why this role" reason; and `metadata` stores non-sensitive evidence (`roleSuitabilityScore`,
+  `roleSuitabilityBreakdown`, `matchedSkills`, `weakSkills`, `avoidedRole`, `assignmentReason`).
+- **`DraftTeam`**: `roleScore` is recomputed from role coverage + average suitability + key-role
+  coverage; `metadata.roleCoverage` stores `requiredRoles` / `coveredRoles` / `missingRoles` /
+  `weakRoles` / `roleCoverageScore` / `roleAssignmentVersion: "role-suitability-v1"`.
+
+**Schema additions (Part 7):** only four new `FormationWarningType` enum values —
+`MISSING_ROLE_COVERAGE`, `LOW_ROLE_CONFIDENCE`, `ROLE_AVOIDANCE_CONFLICT`, `ROLE_SKILL_MISMATCH`. No
+new models or columns. Publishing (Part 6) is unchanged: `team_leader → LEADER`,
+`co_leader → CO_LEADER`, else `MEMBER`.
+
+See `docs/ROLE_SUITABILITY_ENGINE.md` for the catalogue, formula, and warnings.
+
 ---
 
 ## 5. Privacy Note

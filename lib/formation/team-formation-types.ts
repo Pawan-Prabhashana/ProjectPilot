@@ -111,6 +111,49 @@ export type DraftMemberPlan = {
   roleConfidence: number; // 0–100
   fitScore: number; // 0–100
   explanation: string;
+  // Part 7: non-sensitive role-suitability evidence persisted to DraftTeamMember.metadata.
+  roleMetadata?: Record<string, unknown> | null;
+};
+
+// ── Part 7: role suitability ────────────────────────────────────────────────────
+
+export type RoleScoreBreakdown = {
+  skillScore: number;
+  preferenceScore: number;
+  confidenceScore: number;
+  projectRelevanceScore: number;
+  capacityFitScore: number;
+};
+
+export type RoleAssignment = {
+  studentProfileId: string;
+  roleKey: string;
+  roleLabel: string;
+  score: number; // 0–100 suitability
+  breakdown: RoleScoreBreakdown;
+  matchedSkills: string[];
+  weakSkills: string[];
+  avoidedRole: boolean;
+  assignmentReason: string;
+};
+
+export type RoleCoverage = {
+  requiredRoles: string[];
+  coveredRoles: string[];
+  missingRoles: string[];
+  weakRoles: string[];
+  roleCoverageScore: number; // 0–100
+  roleAssignmentVersion: string;
+};
+
+export type RoleWarning = {
+  studentProfileId: string | null;
+  topicId: string | null;
+  type: FormationWarningType;
+  severity: FormationWarningSeverity;
+  title: string;
+  message: string;
+  metadata?: Record<string, unknown>;
 };
 
 export type DraftTeamPlan = {
@@ -122,6 +165,8 @@ export type DraftTeamPlan = {
   scores: TeamScoreBreakdown;
   explanation: string;
   supportRoutineHints: string[];
+  // Part 7: role coverage summary persisted to DraftTeam.metadata.
+  roleCoverage?: RoleCoverage | null;
 };
 
 // ── Result / summary shapes ─────────────────────────────────────────────────────
@@ -186,6 +231,8 @@ export type DraftTeamView = {
   scores: TeamScoreBreakdown;
   explanation: string | null;
   supportRoutineHints: string[];
+  // Part 7: role coverage summary (from DraftTeam.metadata.roleCoverage).
+  roleCoverage: RoleCoverage | null;
   members: DraftMemberView[];
   warnings: DraftWarningView[];
 };

@@ -169,16 +169,26 @@ All scores are integers, clamped to 0–100. The breakdown is stored on `DraftTe
 
 ## 9. How role suggestions work
 
-Roles come from each student's `StudentRolePreference` (key, label, `preferenceLevel`,
-`confidenceLevel`, `avoid`). The 8 canonical roles are: `team_leader`, `frontend_developer`,
-`backend_developer`, `database_designer`, `ui_ux_designer`, `qa_tester`, `documentation_lead`,
-`presentation_lead`.
+> **Part 7 upgrade.** Role assignment now runs through the dedicated, deterministic **Role Suitability
+> Engine** ([`lib/formation/role-suitability.ts`](../lib/formation/role-suitability.ts)). See
+> [ROLE_SUITABILITY_ENGINE.md](ROLE_SUITABILITY_ENGINE.md) for the full catalogue, formula, and
+> warnings.
 
-The engine walks the roles in fixed order and assigns each to the strongest *willing*, still-unassigned
-member (strength = `preferenceLevel × confidenceLevel`, never an `avoid` role unless unavoidable). Any
-leftover member receives their strongest non-avoided preference. Each suggestion is stored on
-`DraftTeamMember` as `suggestedRoleKey`/`suggestedRoleLabel` with a `roleConfidence` (0–100). If no
-member has a strong, non-avoided `team_leader` preference, the team earns a `NO_CLEAR_LEADER` warning.
+For each draft team the engine calls `assignRolesForDraftTeam(teamContext)`, which scores every
+student against a **13-role catalogue** using a weighted formula (40% skill match, 25% role
+preference, 20% confidence, 10% project relevance, 5% capacity) with a large penalty for roles the
+student marked `avoid`. It first covers the team's required roles (always `team_leader`,
+`documentation_lead`, `presentation_lead`, plus topic-driven technical roles such as
+`ai_ml_specialist`, `mobile_developer`, `backend_developer`) with the best-suited member, then gives
+every remaining member their single best role. One primary role per student, fully deterministic.
+
+Each assignment is stored on `DraftTeamMember` as `suggestedRoleKey`/`suggestedRoleLabel`, a
+`roleConfidence` (the 0–100 suitability score), a plain-text `explanation` ("why this role"), and a
+`metadata` object with the score breakdown, `matchedSkills`, `weakSkills`, and `avoidedRole`. Role
+coverage (`requiredRoles`/`coveredRoles`/`missingRoles`/`weakRoles`/`roleCoverageScore`) is stored on
+`DraftTeam.metadata.roleCoverage`, and the team `roleScore` is recomputed from coverage + average
+suitability + key-role coverage. Role gaps raise `NO_CLEAR_LEADER`, `MISSING_ROLE_COVERAGE`,
+`LOW_ROLE_CONFIDENCE`, `ROLE_AVOIDANCE_CONFLICT`, and `ROLE_SKILL_MISMATCH` warnings.
 
 ---
 
