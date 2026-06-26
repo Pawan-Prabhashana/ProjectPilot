@@ -70,11 +70,9 @@ operational data and signals that the formation engine will consume.
 
 These are **planned next modules**, not implemented yet:
 
-- A **project topic catalogue** with preference capture and duplicate-selection detection — Part 4.
-- A **formation engine** that uses the skill, availability, role, and capacity data from Part 3 to produce balanced teams — Part 5.
-- A **formation engine** that produces balanced teams — Part 5 (the batch/rule-set foundation is now in place).
+- A **formation engine** that uses the skill, availability, role, preference, and capacity data from Parts 2–4 to produce balanced teams — Part 5.
 - **Capacity-aware task allocation** that distributes tasks by each member's capacity — Part 7+.
-- **Gap detection** for missing critical skills — Part 5+.
+- **Gap detection** for missing critical skills in formed teams — Part 5+.
 - A **schedule conflict detector** for overlapping commitments — Part 5+.
 
 ---
@@ -84,7 +82,7 @@ These are **planned next modules**, not implemented yet:
 | Mentor Requirement | System Capability (planned target) | Status |
 |--------------------|------------------------------------|--------|
 | Skill imbalances | Skill inventory and skill coverage scoring | Planned |
-| Duplicate project selections | Project topic catalogue and preference conflict detection | Planned |
+| Duplicate project selections | Project topic catalogue and preference conflict detection | Implemented — Part 4 |
 | Students left without teams | Unassigned student tracking and formation batches | Partial — unassigned tracking + batch/intake models exist; formation engine planned |
 | Uneven workload distribution | Capacity-aware task allocation | Partial — workload signals exist; allocation engine planned |
 | Match by skill | Student skill matrix and role suitability scoring | Planned |
@@ -122,8 +120,17 @@ Coordinator Formation Setup page updated with aggregate profile readiness counts
 no profile, average score, no-skills count). Seed data creates submitted profiles for all 12 demo
 students with varied, realistic data.
 
-**Stage 4 (Part 4) — Project topic catalogue (planned):**
-Project topic catalogue, student project preference ranking, and duplicate-selection detection.
+**Stage 4 (Part 4) — Project topic catalogue (done):**
+`ProjectTopic`, `ProjectPreference`, and `ProjectSelectionConflict` models added to the schema.
+Coordinator can manage topics at `/dashboard/coordinator/project-topics` — create topics, view
+demand counts (first-choice and total interest per topic), and recalculate selection conflicts.
+Conflicts detected: `OVER_SELECTED`, `NO_INTEREST`, `CAPACITY_EXCEEDED`, `SKILL_GAP`, and
+`STUDENT_MISSING_PREFERENCES`. Student project preferences page at
+`/dashboard/student/project-preferences` — browse OPEN topics, rank preferences, save draft, submit.
+Duplicate topic selection is prevented at both the UI and API level. Coordinator Formation Setup
+updated with project preference readiness summary (open topics, submitted sets, missing preferences,
+unresolved conflicts). Seed data creates 10 demo topics, 12 student preference sets, and
+pre-calculated conflict records demonstrating OVER_SELECTED, NO_INTEREST, and SKILL_GAP scenarios.
 
 **Stage 5 (Part 5) — Formation engine (planned):**
 Generate balanced teams as formation batches, place every unassigned student, and surface conflicts

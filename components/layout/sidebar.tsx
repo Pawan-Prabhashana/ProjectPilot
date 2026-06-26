@@ -119,6 +119,13 @@ const navItems: NavItem[] = [
     roles: ['STUDENT'],
     description: 'Skills, availability, capacity, and support preferences',
   },
+  {
+    href: '/dashboard/student/project-preferences',
+    label: 'Project Preferences',
+    icon: BookOpen,
+    roles: ['STUDENT'],
+    description: 'Rank preferred capstone topics',
+  },
 
   // ── STUDENT LEADER-ONLY ───────────────────────────────────────────────────
   {
@@ -210,6 +217,13 @@ const navItems: NavItem[] = [
     icon: Layers,
     roles: ['COORDINATOR'],
     description: 'Academic terms, student intake, and formation batches',
+  },
+  {
+    href: '/dashboard/coordinator/project-topics',
+    label: 'Project Topics',
+    icon: BookOpen,
+    roles: ['COORDINATOR'],
+    description: 'Catalogue, demand, and selection conflicts',
   },
   {
     href: '/dashboard/consultations',

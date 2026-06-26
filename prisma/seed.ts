@@ -13,7 +13,7 @@
  * Run: npm run db:seed
  */
 
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma, ProjectSelectionConflictType, ProjectSelectionConflictSeverity } from '@prisma/client';
 import { hash } from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -822,6 +822,273 @@ async function main() {
   }
 
   console.log('  ✓ StudentFormationProfile records created/updated for', studentFormationData.length, 'students');
+
+  // ============================================================================
+  // PART 4 — Project Topic Catalogue, Student Preferences, and Conflicts
+  // ============================================================================
+
+  const activeTerm = await prisma.academicTerm.findUnique({ where: { code: '2026-S1-CAPSTONE' } });
+  if (!activeTerm) {
+    console.warn('  ⚠  No active term found — skipping Part 4 seed. Run db:push first.');
+  } else {
+    // -- 10 realistic capstone project topics ----------------------------------
+    const topicsData = [
+      {
+        slug: 'ai-attendance-risk-predictor',
+        title: 'AI Attendance Risk Predictor',
+        description: 'Build a machine-learning model that predicts student attendance risk from historical patterns, enabling proactive early-intervention alerts for academic staff.',
+        domain: 'AI / Education Technology',
+        difficulty: 'HIGH' as const,
+        maxTeams: 1, maxStudents: 5,
+        requiredSkills: ['ai_ml', 'backend', 'database'],
+        preferredSkills: ['research', 'presentation'],
+      },
+      {
+        slug: 'neurodivergent-study-planner',
+        title: 'Neurodivergent-Friendly Study Planner',
+        description: 'Design and develop a low-distraction, highly-customisable study planner with task decomposition, time-boxing, and gentle reminders tailored for neurodivergent students.',
+        domain: 'Web Application / Accessibility',
+        difficulty: 'MEDIUM' as const,
+        maxTeams: 2, maxStudents: 8,
+        requiredSkills: ['frontend', 'ui_ux', 'testing'],
+        preferredSkills: ['research', 'documentation'],
+      },
+      {
+        slug: 'smart-library-seat-booking',
+        title: 'Smart Library Seat Booking System',
+        description: 'Create a real-time seat booking and availability system for campus libraries, with occupancy heatmaps and booking analytics for facilities management.',
+        domain: 'Web Application',
+        difficulty: 'MEDIUM' as const,
+        maxTeams: 1, maxStudents: 5,
+        requiredSkills: ['frontend', 'backend', 'database'],
+        preferredSkills: ['ui_ux', 'testing'],
+      },
+      {
+        slug: 'healthcare-appointment-queue',
+        title: 'Healthcare Appointment Queue Optimiser',
+        description: 'Develop a queue management and appointment scheduling platform for campus health services, reducing wait times through intelligent prioritisation logic.',
+        domain: 'Healthcare IT',
+        difficulty: 'HIGH' as const,
+        maxTeams: 1, maxStudents: 5,
+        requiredSkills: ['backend', 'database', 'testing'],
+        preferredSkills: ['frontend', 'ui_ux'],
+      },
+      {
+        slug: 'campus-energy-dashboard',
+        title: 'Sustainable Campus Energy Dashboard',
+        description: 'Build a live energy monitoring dashboard that visualises consumption across campus buildings, highlights inefficiencies, and supports sustainability reporting.',
+        domain: 'Sustainability / Data Visualisation',
+        difficulty: 'MEDIUM' as const,
+        maxTeams: 1, maxStudents: 5,
+        requiredSkills: ['frontend', 'database', 'ui_ux'],
+        preferredSkills: ['devops', 'documentation'],
+      },
+      {
+        slug: 'student-wellbeing-checkin',
+        title: 'Student Mental Wellbeing Check-in Platform',
+        description: 'Create a private, low-friction daily wellbeing check-in tool with trend analytics and optional peer-support nudges for student welfare teams.',
+        domain: 'Mental Health / Student Welfare',
+        difficulty: 'MEDIUM' as const,
+        maxTeams: 2, maxStudents: 8,
+        requiredSkills: ['frontend', 'backend', 'ui_ux'],
+        preferredSkills: ['research', 'testing'],
+      },
+      {
+        slug: 'ai-assignment-feedback',
+        title: 'AI-Powered Assignment Feedback Assistant',
+        description: 'Develop an AI assistant that provides formative, rubric-aligned feedback on student draft submissions before final submission deadlines.',
+        domain: 'AI / Education Technology',
+        difficulty: 'HIGH' as const,
+        maxTeams: 1, maxStudents: 4,
+        requiredSkills: ['ai_ml', 'backend', 'frontend'],
+        preferredSkills: ['documentation', 'research'],
+      },
+      {
+        slug: 'community-donation-matching',
+        title: 'Community Donation Matching Platform',
+        description: 'Build a platform that matches community donors to verified non-profit organisations based on cause alignment, impact metrics, and donor capacity.',
+        domain: 'Social Impact / Web Application',
+        difficulty: 'LOW' as const,
+        maxTeams: 1, maxStudents: 5,
+        requiredSkills: ['frontend', 'backend', 'database'],
+        preferredSkills: ['presentation', 'project_management'],
+      },
+      {
+        slug: 'mobile-field-research-collector',
+        title: 'Mobile Field Research Data Collector',
+        description: 'Create a cross-platform mobile app for offline-first field data collection with GPS tagging, media capture, and sync-when-connected to a cloud backend.',
+        domain: 'Mobile / Research Tools',
+        difficulty: 'HIGH' as const,
+        maxTeams: 1, maxStudents: 5,
+        requiredSkills: ['mobile_development', 'backend', 'database'],
+        preferredSkills: ['devops', 'testing'],
+      },
+      {
+        slug: 'cybersecurity-awareness-simulator',
+        title: 'Cybersecurity Awareness Training Simulator',
+        description: 'Design a gamified platform that simulates phishing attacks, social engineering, and safe-browsing quizzes to improve campus cybersecurity awareness.',
+        domain: 'Cybersecurity / Education',
+        difficulty: 'MEDIUM' as const,
+        maxTeams: 1, maxStudents: 5,
+        requiredSkills: ['frontend', 'backend', 'testing'],
+        preferredSkills: ['ui_ux', 'documentation'],
+      },
+    ];
+
+    const upsertedTopics: Record<string, string> = {}; // slug -> id
+
+    for (const t of topicsData) {
+      const topic = await prisma.projectTopic.upsert({
+        where: { termId_slug: { termId: activeTerm.id, slug: t.slug } },
+        update: {
+          title: t.title, description: t.description, domain: t.domain,
+          difficulty: t.difficulty, status: 'OPEN', maxTeams: t.maxTeams, maxStudents: t.maxStudents,
+          requiredSkills: t.requiredSkills, preferredSkills: t.preferredSkills,
+        },
+        create: {
+          termId: activeTerm.id, slug: t.slug, title: t.title,
+          description: t.description, domain: t.domain, difficulty: t.difficulty,
+          status: 'OPEN', minTeams: 1, maxTeams: t.maxTeams, maxStudents: t.maxStudents,
+          requiredSkills: t.requiredSkills, preferredSkills: t.preferredSkills,
+        },
+      });
+      upsertedTopics[t.slug] = topic.id;
+    }
+
+    console.log('  ✓ ProjectTopic records created/updated:', Object.keys(upsertedTopics).length);
+
+    // -- 12 demo students with 3 ranked preferences each ----------------------
+    // Deliberately:
+    //   - Many students pick 'ai-attendance-risk-predictor' as rank 1 → OVER_SELECTED
+    //   - 'community-donation-matching' gets zero preferences → NO_INTEREST
+    //   - 'mobile-field-research-collector' requires mobile_development but few students have it → SKILL_GAP
+
+    const studentPreferenceData: Array<{ email: string; prefs: Array<{ slug: string; rank: number }> }> = [
+      { email: 'aisha@demo.com',     prefs: [{ slug: 'ai-attendance-risk-predictor', rank: 1 }, { slug: 'student-wellbeing-checkin', rank: 2 }, { slug: 'neurodivergent-study-planner', rank: 3 }] },
+      { email: 'ruvan@demo.com',     prefs: [{ slug: 'ai-attendance-risk-predictor', rank: 1 }, { slug: 'ai-assignment-feedback', rank: 2 }, { slug: 'campus-energy-dashboard', rank: 3 }] },
+      { email: 'thilini@demo.com',   prefs: [{ slug: 'ai-attendance-risk-predictor', rank: 1 }, { slug: 'cybersecurity-awareness-simulator', rank: 2 }, { slug: 'smart-library-seat-booking', rank: 3 }] },
+      { email: 'sachith@demo.com',   prefs: [{ slug: 'ai-attendance-risk-predictor', rank: 1 }, { slug: 'healthcare-appointment-queue', rank: 2 }, { slug: 'neurodivergent-study-planner', rank: 3 }] },
+      { email: 'kavya@demo.com',     prefs: [{ slug: 'neurodivergent-study-planner', rank: 1 }, { slug: 'student-wellbeing-checkin', rank: 2 }, { slug: 'campus-energy-dashboard', rank: 3 }] },
+      { email: 'milan@demo.com',     prefs: [{ slug: 'mobile-field-research-collector', rank: 1 }, { slug: 'smart-library-seat-booking', rank: 2 }, { slug: 'cybersecurity-awareness-simulator', rank: 3 }] },
+      { email: 'nadeesha@demo.com',  prefs: [{ slug: 'ai-assignment-feedback', rank: 1 }, { slug: 'student-wellbeing-checkin', rank: 2 }, { slug: 'neurodivergent-study-planner', rank: 3 }] },
+      { email: 'chamath@demo.com',   prefs: [{ slug: 'mobile-field-research-collector', rank: 1 }, { slug: 'cybersecurity-awareness-simulator', rank: 2 }, { slug: 'smart-library-seat-booking', rank: 3 }] },
+      { email: 'ishani@demo.com',    prefs: [{ slug: 'campus-energy-dashboard', rank: 1 }, { slug: 'neurodivergent-study-planner', rank: 2 }, { slug: 'student-wellbeing-checkin', rank: 3 }] },
+      { email: 'dinusha@demo.com',   prefs: [{ slug: 'smart-library-seat-booking', rank: 1 }, { slug: 'healthcare-appointment-queue', rank: 2 }, { slug: 'cybersecurity-awareness-simulator', rank: 3 }] },
+      { email: 'sahan@demo.com',     prefs: [{ slug: 'ai-assignment-feedback', rank: 1 }, { slug: 'ai-attendance-risk-predictor', rank: 2 }, { slug: 'campus-energy-dashboard', rank: 3 }] },
+      { email: 'vishmi@demo.com',    prefs: [{ slug: 'healthcare-appointment-queue', rank: 1 }, { slug: 'mobile-field-research-collector', rank: 2 }, { slug: 'cybersecurity-awareness-simulator', rank: 3 }] },
+    ];
+
+    let prefCount = 0;
+    for (const sd of studentPreferenceData) {
+      const su = await prisma.user.findUnique({ where: { email: sd.email } });
+      if (!su) continue;
+      const sp = await prisma.studentProfile.findUnique({ where: { userId: su.id } });
+      if (!sp) continue;
+
+      for (const pref of sd.prefs) {
+        const topicId = upsertedTopics[pref.slug];
+        if (!topicId) continue;
+        await prisma.projectPreference.upsert({
+          where: { termId_studentProfileId_topicId: { termId: activeTerm.id, studentProfileId: sp.id, topicId } },
+          update: { rank: pref.rank, status: 'SUBMITTED' },
+          create: { termId: activeTerm.id, studentProfileId: sp.id, topicId, rank: pref.rank, status: 'SUBMITTED' },
+        });
+        prefCount++;
+      }
+    }
+    console.log('  ✓ ProjectPreference records created/updated:', prefCount);
+
+    // -- Recalculate conflicts -------------------------------------------------
+    // Remove old unresolved conflicts, then regenerate
+    await prisma.projectSelectionConflict.deleteMany({ where: { termId: activeTerm.id, resolved: false } });
+
+    // Build demand maps from submitted preferences
+    const allSubmitted = await prisma.projectPreference.findMany({
+      where: { termId: activeTerm.id, status: 'SUBMITTED' },
+      select: { topicId: true, rank: true, studentProfileId: true },
+    });
+    const firstChoiceMap = new Map<string, number>();
+    const interestedMap  = new Map<string, Set<string>>();
+    for (const p of allSubmitted) {
+      if (p.rank === 1) firstChoiceMap.set(p.topicId, (firstChoiceMap.get(p.topicId) ?? 0) + 1);
+      if (!interestedMap.has(p.topicId)) interestedMap.set(p.topicId, new Set());
+      interestedMap.get(p.topicId)!.add(p.studentProfileId);
+    }
+
+    const allTopics = await prisma.projectTopic.findMany({ where: { termId: activeTerm.id, status: 'OPEN' } });
+    const conflictsToCreate: Prisma.ProjectSelectionConflictCreateManyInput[] = [];
+
+    for (const topic of allTopics) {
+      const firstChoice = firstChoiceMap.get(topic.id) ?? 0;
+      const totalInterested = interestedMap.get(topic.id)?.size ?? 0;
+
+      // NO_INTEREST
+      if (totalInterested === 0) {
+        conflictsToCreate.push({
+          termId: activeTerm.id, topicId: topic.id, studentProfileId: null,
+          type: ProjectSelectionConflictType.NO_INTEREST,
+          severity: ProjectSelectionConflictSeverity.MEDIUM,
+          title: `No student interest: ${topic.title}`,
+          message: `No students have selected "${topic.title}" in their submitted preferences. The coordinator may want to review this topic or promote it to students.`,
+          metadata: { topicSlug: topic.slug } as Prisma.InputJsonValue, resolved: false,
+        });
+        continue;
+      }
+
+      // OVER_SELECTED
+      const threshold = topic.maxTeams * 5;
+      if (firstChoice > threshold || totalInterested > threshold * 1.5) {
+        conflictsToCreate.push({
+          termId: activeTerm.id, topicId: topic.id, studentProfileId: null,
+          type: ProjectSelectionConflictType.OVER_SELECTED,
+          severity: firstChoice > topic.maxTeams * 8 ? ProjectSelectionConflictSeverity.HIGH : ProjectSelectionConflictSeverity.MEDIUM,
+          title: `High demand: ${topic.title}`,
+          message: `"${topic.title}" received ${firstChoice} first-choice ranking${firstChoice !== 1 ? 's' : ''} but has only ${topic.maxTeams} team slot${topic.maxTeams !== 1 ? 's' : ''}. ${totalInterested} students are interested. Coordinator review recommended.`,
+          metadata: { firstChoiceCount: firstChoice, totalInterested, maxTeams: topic.maxTeams } as Prisma.InputJsonValue, resolved: false,
+        });
+      }
+
+      // CAPACITY_EXCEEDED
+      if (topic.maxStudents && totalInterested > topic.maxStudents) {
+        conflictsToCreate.push({
+          termId: activeTerm.id, topicId: topic.id, studentProfileId: null,
+          type: ProjectSelectionConflictType.CAPACITY_EXCEEDED,
+          severity: ProjectSelectionConflictSeverity.HIGH,
+          title: `Capacity exceeded: ${topic.title}`,
+          message: `"${topic.title}" has ${totalInterested} interested students but a max capacity of ${topic.maxStudents}.`,
+          metadata: { totalInterested, maxStudents: topic.maxStudents } as Prisma.InputJsonValue, resolved: false,
+        });
+      }
+
+      // SKILL_GAP — check if required skills are covered by interested students
+      const reqSkills = Array.isArray(topic.requiredSkills) ? (topic.requiredSkills as string[]) : [];
+      if (reqSkills.length > 0) {
+        const interestedIds = Array.from(interestedMap.get(topic.id) ?? []);
+        const coverage = await prisma.studentSkill.groupBy({
+          by: ['skillKey'],
+          where: { profile: { studentProfileId: { in: interestedIds } }, skillKey: { in: reqSkills }, level: { gte: 3 } },
+          _count: { _all: true },
+        });
+        const coverageMap = new Map(coverage.map(s => [s.skillKey, s._count._all]));
+        const weakSkills = reqSkills.filter(sk => (coverageMap.get(sk) ?? 0) < 2);
+        if (weakSkills.length > 0) {
+          conflictsToCreate.push({
+            termId: activeTerm.id, topicId: topic.id, studentProfileId: null,
+            type: ProjectSelectionConflictType.SKILL_GAP,
+            severity: weakSkills.length > 1 ? ProjectSelectionConflictSeverity.HIGH : ProjectSelectionConflictSeverity.MEDIUM,
+            title: `Skill gap detected: ${topic.title}`,
+            message: `"${topic.title}" requires ${weakSkills.join(', ')} but fewer than 2 interested students have level >= 3 in these skills. A formed team may lack critical expertise.`,
+            metadata: { weakSkills, requiredSkills: reqSkills } as Prisma.InputJsonValue, resolved: false,
+          });
+        }
+      }
+    }
+
+    if (conflictsToCreate.length > 0) {
+      await prisma.projectSelectionConflict.createMany({ data: conflictsToCreate });
+    }
+    console.log('  ✓ ProjectSelectionConflict records created:', conflictsToCreate.length);
+  }
 
   console.log('\n✅  Seeding complete!\n');
   console.log('Demo credentials (all passwords: demo1234)');
