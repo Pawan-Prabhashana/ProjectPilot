@@ -24,9 +24,13 @@ import {
   Shield,
   GitMerge,
   ChevronRight,
+  Lightbulb,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ConflictGapDashboardResult, ConflictGapRiskItem, RiskSeverity, RiskSource } from '@/lib/services/formation/conflict-gap-dashboard';
+import type { ExplainabilityResult } from '@/lib/services/explainability/types';
 
 // ── Constants ──────────────────────────────────────────────────────────────────
 
@@ -101,6 +105,9 @@ export default function ConflictGapDashboardPage() {
   const [refreshing, setRefreshing] = useState(false);
   const [severityFilter, setSeverityFilter] = useState<RiskSeverity | 'all'>('all');
   const [sourceFilter, setSourceFilter] = useState<RiskSource | 'all'>('all');
+  const [showExplain, setShowExplain] = useState(false);
+  const [explain, setExplain] = useState<ExplainabilityResult | null>(null);
+  const [explainLoading, setExplainLoading] = useState(false);
 
   // Role guard
   useEffect(() => {
@@ -130,6 +137,20 @@ export default function ConflictGapDashboardPage() {
   useEffect(() => {
     if (sessionStatus === 'authenticated') loadData();
   }, [sessionStatus, loadData]);
+
+  const handleExplain = async () => {
+    setShowExplain((v) => !v);
+    if (explain) return;
+    setExplainLoading(true);
+    try {
+      const res = await fetch('/api/explainability/conflicts');
+      if (res.ok) setExplain(await res.json());
+    } catch {
+      // fall through
+    } finally {
+      setExplainLoading(false);
+    }
+  };
 
   const filteredRisks = (data?.risks ?? []).filter((r) => {
     if (severityFilter !== 'all' && r.severity !== severityFilter) return false;
@@ -313,6 +334,61 @@ export default function ConflictGapDashboardPage() {
             </div>
           </CardContent>
         </Card>
+      )}
+
+      {/* What should I fix first — Explain panel */}
+      {data && (
+        <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/50">
+          <button
+            onClick={handleExplain}
+            className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-amber-800 hover:bg-amber-50 transition-colors rounded-xl"
+          >
+            <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
+            What should I fix first? (explain)
+            {showExplain ? <ChevronUp className="ml-auto h-4 w-4" /> : <ChevronDown className="ml-auto h-4 w-4" />}
+          </button>
+          {showExplain && (
+            <div className="border-t border-amber-200 px-4 pb-4 pt-3">
+              {explainLoading ? (
+                <div className="flex items-center gap-2 text-sm text-amber-700">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Generating explanation…
+                </div>
+              ) : explain ? (
+                <div className="space-y-3 text-sm">
+                  <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
+                    Deterministic explanation — Based on ProjectPilot&apos;s risk aggregation data
+                  </p>
+                  <p className="text-amber-900">{explain.summary}</p>
+                  {explain.keyReasons.length > 0 && (
+                    <ul className="space-y-1">
+                      {explain.keyReasons.map((r) => (
+                        <li key={r} className="flex items-start gap-2 text-amber-800">
+                          <Info className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                          {r}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {explain.recommendedActions.length > 0 && (
+                    <div>
+                      <p className="text-xs font-semibold text-amber-700 mb-1">Priority actions</p>
+                      <ul className="space-y-1">
+                        {explain.recommendedActions.map((a) => (
+                          <li key={a} className="flex items-start gap-2 text-amber-800">
+                            <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                            {a}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-amber-700">Explanation unavailable.</p>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
       {/* Filters */}

@@ -5,6 +5,8 @@ import { resolveActiveWorkspace } from '@/lib/services/workspace-access';
 import { getStudentMyWorkDashboard } from '@/lib/services/dashboard/student-dashboard';
 import { getStudentCapstoneJourney } from '@/lib/services/dashboard/capstone-journey';
 import type { JourneyStep, StudentCapstoneJourney } from '@/lib/services/dashboard/capstone-journey';
+import { explainStudentNextSteps } from '@/lib/services/explainability/explainability-service';
+import type { ExplainabilityResult } from '@/lib/services/explainability/types';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -71,6 +73,7 @@ export default async function MyWorkPage({
   const workspace = await resolveActiveWorkspace(user, teamId);
   const data = await getStudentMyWorkDashboard(user.id, workspace?.teamId);
   const journey = await getStudentCapstoneJourney(user.id);
+  const nextStepsExplain = await explainStudentNextSteps(user.id).catch(() => null);
 
   const teamParam = workspace ? `?teamId=${workspace.teamId}` : '';
 
@@ -87,7 +90,7 @@ export default async function MyWorkPage({
           description="Your personal task and support dashboard."
         />
         {/* Capstone Journey shown even without a team */}
-        {journey && <CapstoneJourneyCard journey={journey} />}
+        {journey && <CapstoneJourneyCard journey={journey} explainResult={nextStepsExplain} />}
         {!journey && (
           <InfoCallout variant="info" title="Not assigned to a team yet">
             You are not assigned to a team yet. Complete your Formation Profile and submit project preferences, then wait for the coordinator to publish teams.
@@ -143,7 +146,7 @@ export default async function MyWorkPage({
       />
 
       {/* Capstone Journey — always shown at top */}
-      {journey && <CapstoneJourneyCard journey={journey} />}
+      {journey && <CapstoneJourneyCard journey={journey} explainResult={nextStepsExplain} />}
 
       {/* Workspace identity */}
       <div className="flex flex-wrap items-center gap-2.5 rounded-lg border bg-muted/40 px-4 py-2.5 text-sm">
@@ -638,7 +641,7 @@ const JOURNEY_STATUS_STYLES: Record<string, string> = {
   pending: 'text-muted-foreground',
 };
 
-function CapstoneJourneyCard({ journey }: { journey: StudentCapstoneJourney }) {
+function CapstoneJourneyCard({ journey, explainResult }: { journey: StudentCapstoneJourney; explainResult?: ExplainabilityResult | null }) {
   const { steps, nextActionLabel, nextActionHref, teamName, termName } = journey;
   return (
     <Card className="border-violet-200 bg-violet-50/20">
@@ -663,6 +666,35 @@ function CapstoneJourneyCard({ journey }: { journey: StudentCapstoneJourney }) {
               <ArrowRight className="h-4 w-4" />
             </div>
           </Link>
+        )}
+        {explainResult && (
+          <details className="mt-3 group">
+            <summary className="flex cursor-pointer items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-violet-700 hover:bg-violet-100 transition-colors list-none">
+              <Lightbulb className="h-3.5 w-3.5 text-violet-500" />
+              What should I do next? (explanation)
+            </summary>
+            <div className="mt-2 rounded-lg border border-violet-200 bg-white/70 px-3 py-3 text-xs space-y-2">
+              <p className="text-[10px] font-semibold uppercase tracking-wide text-violet-400">
+                Deterministic explanation · Based on your profile and formation status
+              </p>
+              <p className="text-violet-900">{explainResult.summary}</p>
+              {explainResult.recommendedActions.length > 0 && (
+                <ul className="space-y-1">
+                  {explainResult.recommendedActions.map((a) => (
+                    <li key={a} className="flex items-start gap-1.5 text-violet-800">
+                      <ArrowRight className="mt-0.5 h-3 w-3 shrink-0 text-violet-400" />
+                      {a}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {explainResult.privacyNote && (
+                <p className="text-[10px] text-violet-400 border-t border-violet-100 pt-2">
+                  🔒 {explainResult.privacyNote}
+                </p>
+              )}
+            </div>
+          </details>
         )}
       </CardContent>
     </Card>

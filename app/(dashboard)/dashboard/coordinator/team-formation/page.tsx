@@ -24,7 +24,9 @@ import {
   Pencil,
   X,
   Check,
+  Lightbulb,
 } from 'lucide-react';
+import type { ExplainabilityResult } from '@/lib/services/explainability/types';
 import { cn } from '@/lib/utils';
 import type { WorkspaceOverview } from '@/lib/services/formation/formation-workspace';
 import type { FormationRunDetails, DraftTeamView, DraftMemberView } from '@/lib/formation/team-formation-types';
@@ -114,6 +116,11 @@ export default function TeamFormationWorkspacePage() {
     teamReadiness: { draftTeamId: string; name: string; status: string; isReady: boolean; issues: string[] }[];
   } | null>(null);
   const [showPublishSection, setShowPublishSection] = useState(false);
+
+  // Explainability
+  const [showRunExplain, setShowRunExplain] = useState(false);
+  const [runExplain, setRunExplain] = useState<ExplainabilityResult | null>(null);
+  const [runExplainLoading, setRunExplainLoading] = useState(false);
 
   // Role guard
   useEffect(() => {
@@ -335,6 +342,22 @@ export default function TeamFormationWorkspacePage() {
   }
 
   const isPublished = !!overview?.isPublished;
+  const handleExplainRun = async () => {
+    const runId = runDetails?.run?.id;
+    if (!runId) return;
+    setShowRunExplain((v) => !v);
+    if (runExplain) return;
+    setRunExplainLoading(true);
+    try {
+      const res = await fetch(`/api/explainability/team-formation?runId=${runId}`);
+      if (res.ok) setRunExplain(await res.json());
+    } catch {
+      // fall through — show nothing if unavailable
+    } finally {
+      setRunExplainLoading(false);
+    }
+  };
+
   const hasCompletedRun = overview?.latestRun?.status === 'COMPLETED';
   const run = runDetails?.run;
 
@@ -390,6 +413,7 @@ export default function TeamFormationWorkspacePage() {
 
       {/* Run summary */}
       {run ? (
+        <>
         <Card>
           <CardHeader className="pb-2">
             <div className="flex items-start justify-between gap-4">
@@ -464,6 +488,75 @@ export default function TeamFormationWorkspacePage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Explain this run */}
+        {run && (
+          <div className="rounded-xl border border-dashed border-amber-200 bg-amber-50/50">
+            <button
+              onClick={handleExplainRun}
+              className="flex w-full items-center gap-2 px-4 py-3 text-sm font-medium text-amber-800 hover:bg-amber-50 transition-colors rounded-xl"
+            >
+              <Lightbulb className="h-4 w-4 text-amber-500 shrink-0" />
+              {showRunExplain ? 'Hide explanation' : 'Why were these teams suggested?'}
+              {showRunExplain ? <ChevronUp className="ml-auto h-4 w-4" /> : <ChevronDown className="ml-auto h-4 w-4" />}
+            </button>
+            {showRunExplain && (
+              <div className="border-t border-amber-200 px-4 pb-4 pt-3">
+                {runExplainLoading ? (
+                  <div className="flex items-center gap-2 text-sm text-amber-700">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Generating explanation…
+                  </div>
+                ) : runExplain ? (
+                  <div className="space-y-3 text-sm">
+                    <p className="text-xs font-semibold text-amber-600 uppercase tracking-wide">
+                      Deterministic explanation — Based on ProjectPilot&apos;s scoring data
+                    </p>
+                    <p className="text-amber-900">{runExplain.summary}</p>
+                    {runExplain.keyReasons.length > 0 && (
+                      <ul className="space-y-1">
+                        {runExplain.keyReasons.map((r) => (
+                          <li key={r} className="flex items-start gap-2 text-amber-800">
+                            <CheckCircle className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                            {r}
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                    {runExplain.risks.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-orange-700 mb-1">Risks</p>
+                        <ul className="space-y-1">
+                          {runExplain.risks.map((r) => (
+                            <li key={r} className="flex items-start gap-2 text-orange-800">
+                              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              {r}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                    {runExplain.recommendedActions.length > 0 && (
+                      <div>
+                        <p className="text-xs font-semibold text-amber-700 mb-1">Recommended actions</p>
+                        <ul className="space-y-1">
+                          {runExplain.recommendedActions.map((a) => (
+                            <li key={a} className="flex items-start gap-2 text-amber-800">
+                              <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                              {a}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <p className="text-sm text-amber-700">Explanation unavailable.</p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+        </>
       ) : (
         <Card className="border-dashed">
           <CardContent className="py-10 text-center text-muted-foreground">

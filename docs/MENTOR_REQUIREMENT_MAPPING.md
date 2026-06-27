@@ -217,3 +217,17 @@ Seed expanded to 72 students (12 named + 60 bulk), 10 supervisors (3 named + 7 b
 topics (10 original + 15 new). All 60 bulk students have formation profiles, skills, availability,
 role preferences, and project preferences. Conflict scenarios are seeded deterministically. Running
 `npm run db:setup` twice produces no duplicates. See `docs/DEMO_SEED_SCENARIOS.md`.
+
+**Stage 11 (Part 11) — UI/UX Polish (done):**
+Landing page upgraded with: workflow steps (6-step pipeline), role-based feature lists (Coordinator/Student/Supervisor),
+explainability section, neurodivergent support section. Formation workspace and conflict dashboard improved with
+"Why?" expand panels. Student Capstone Journey card updated with "What should I do next?" explanation.
+See `docs/UI_UX_POLISH.md`.
+
+**Stage 12 (Part 12) — Explainability Layer (done):**
+Deterministic explainability service created at `lib/services/explainability/`. Functions:
+`explainTeamFormationRun`, `explainDraftTeam`, `explainRoleAssignment`, `explainTaskRecommendation`,
+`explainConflictDashboard`, `explainStudentNextSteps`. API routes at `/api/explainability/*`.
+System works fully without any AI key (deterministic mode always active). Optional AI-enhanced mode
+available via `EXPLAINABILITY_MODE=ai_enhanced` + `AI_API_KEY`. Privacy: never reads CognitiveProfile
+or privateSupportNotes. See `docs/EXPLAINABILITY_LAYER.md`.
