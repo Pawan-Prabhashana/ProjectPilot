@@ -382,6 +382,12 @@ export default async function SupervisorDashboardPage() {
             title="Supervisor Workspace"
             description="Detailed workspace view, meeting notes, and feedback tools"
           />
+          <ActionCard
+            href="/dashboard/tasks"
+            icon={<ClipboardList className="h-4 w-4 text-amber-500" />}
+            title="Team Tasks & Workload"
+            description="Review task progress and workload balance across supervised teams"
+          />
         </div>
       </section>
     </div>

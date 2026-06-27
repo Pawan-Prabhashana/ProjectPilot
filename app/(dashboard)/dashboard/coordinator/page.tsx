@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { requireAuth } from '@/lib/rbac';
-import { getCoordinatorDashboard } from '@/lib/services/dashboard/coordinator-dashboard';
+import { getCoordinatorDashboard, getCoordinatorWorkflowChecklist } from '@/lib/services/dashboard/coordinator-dashboard';
+import type { WorkflowChecklistStep } from '@/lib/services/dashboard/coordinator-dashboard';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { PageHeader } from '@/components/shared/page-header';
 import { RecentActivityFeed } from '@/components/activity/recent-activity-feed';
@@ -42,6 +43,7 @@ export default async function CoordinatorDashboardPage() {
 
   const data = await getCoordinatorDashboard();
   const { stats, setupGaps, recentTeams } = data;
+  const workflowChecklist = await getCoordinatorWorkflowChecklist();
 
   // Compute setup health score from observed gaps (operational only, no private student data)
   const setupHealthScore = computeSetupHealthScore(stats, setupGaps.length);
@@ -195,6 +197,23 @@ export default async function CoordinatorDashboardPage() {
           unresolved across teams.
         </InfoCallout>
       )}
+
+      {/* Section B2: Workflow Checklist (Part 10) */}
+      <section>
+        <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
+          <CheckCircle className="h-4 w-4 text-muted-foreground" />
+          Formation Workflow
+        </h2>
+        <Card>
+          <CardContent className="pt-4 pb-3">
+            <div className="space-y-1">
+              {workflowChecklist.map((step) => (
+                <WorkflowChecklistRow key={step.step} step={step} />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </section>
 
       {/* Section C: Team Management Preview */}
       <section>
@@ -476,6 +495,39 @@ function OperationCard({ href, icon, title, description, comingSoon }: Operation
           <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
         </CardContent>
       </Card>
+    </Link>
+  );
+}
+
+// ── Workflow Checklist Row ─────────────────────────────────────────────────────
+
+const STEP_STATUS_STYLES: Record<string, string> = {
+  done: 'text-emerald-600 bg-emerald-50 border-emerald-200',
+  ready: 'text-sky-600 bg-sky-50 border-sky-200',
+  needs_action: 'text-amber-700 bg-amber-50 border-amber-200',
+  not_started: 'text-muted-foreground bg-muted/30 border-border',
+};
+
+const STEP_STATUS_LABEL: Record<string, string> = {
+  done: 'Done', ready: 'Ready', needs_action: 'Action needed', not_started: 'Not started',
+};
+
+const STEP_DOT: Record<string, string> = {
+  done: 'bg-emerald-500', ready: 'bg-sky-500', needs_action: 'bg-amber-500', not_started: 'bg-muted-foreground/30',
+};
+
+function WorkflowChecklistRow({ step }: { step: WorkflowChecklistStep }) {
+  return (
+    <Link href={step.href}>
+      <div className={cn('flex items-center gap-3 rounded px-3 py-2 border hover:opacity-90 transition-opacity', STEP_STATUS_STYLES[step.status])}>
+        <span className="text-xs font-bold w-5 text-center opacity-60">{step.step}</span>
+        <span className={cn('h-2 w-2 rounded-full shrink-0', STEP_DOT[step.status])} />
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium leading-tight">{step.title}</p>
+          <p className="text-xs opacity-70 truncate">{step.detail}</p>
+        </div>
+        <span className="text-xs font-medium shrink-0 opacity-80">{STEP_STATUS_LABEL[step.status]}</span>
+      </div>
     </Link>
   );
 }

@@ -1108,6 +1108,10 @@ async function main() {
     console.log('  ✓ ProjectSelectionConflict records created:', conflictsToCreate.length);
   }
 
+  // ── Part 13: Expanded Demo Dataset ───────────────────────────────────────────
+  console.log('\n  Seeding Part 13: Expanded demo dataset (60 students, 8 supervisors, 15 topics)…');
+  await seedPart13BulkData(passwordHash);
+
   console.log('\n✅  Seeding complete!\n');
   console.log('Demo credentials (all passwords: demo1234)');
   console.log('─'.repeat(50));
@@ -1115,13 +1119,333 @@ async function main() {
   console.log('  Supervisors : dr.perera@demo.com');
   console.log('                dr.fernando@demo.com');
   console.log('                prof.silva@demo.com');
+  console.log('                supervisor01@demo.com … supervisor07@demo.com');
   console.log('  Students    : ruvan@demo.com   (Team Vertex, key demo user)');
   console.log('                aisha@demo.com   (Team Vertex, lead)');
   console.log('                sachith@demo.com (Team Nova, lead)');
   console.log('                nadeesha@demo.com (Team Horizon, lead)');
   console.log('                dinusha@demo.com  (Team Pulse, lead)');
+  console.log('                student001@demo.com … student060@demo.com (bulk demo)');
   console.log('─'.repeat(50));
   console.log('\nDemo walkthrough: docs/DEMO.md');
+}
+
+// ── Part 13: Bulk seeding function ────────────────────────────────────────────
+
+// Deterministic names for 60 bulk students
+const BULK_STUDENT_NAMES = [
+  'Amara Jayawickrama', 'Binura Kulathunga', 'Chathurika Senanayake', 'Dulantha Weerasinghe',
+  'Erandika Pathirana', 'Farhan Zubair', 'Gayashi Wimalasiri', 'Hiruni Bandara',
+  'Iresha Gunawardena', 'Janaka Rodrigo', 'Kasuni Herath', 'Lahiru Rathnayaka',
+  'Malsha Nirmani', 'Naveen Seneviratne', 'Oshan Wickramaratne', 'Piyumi Dharmasiri',
+  'Qasim Hanif', 'Renuka Dissanayake', 'Sanduni Jayakody', 'Tharushi Madushanka',
+  'Upul Rajapaksha', 'Vimukti Samaraweera', 'Wasana Gunasekara', 'Xavier Perumal',
+  'Yasangi Fernando', 'Zubair Ismail', 'Asanka Priyadarshana', 'Buddhika Ranasinghe',
+  'Chamari Pieris', 'Dasun Vidanagama', 'Eranga Kumarasinghe', 'Fathima Rilwan',
+  'Geethal Kumara', 'Hasini Madushan', 'Ishan Ratnayake', 'Jagath Wijesekara',
+  'Kanishka Hettiarachchi', 'Lasith Nanayakkara', 'Minoli Wickremasinghe', 'Nipuna Bandara',
+  'Omasha Kodagoda', 'Prasadi Vithanage', 'Qamar Fareed', 'Rashmi Abeywickrama',
+  'Sithara Chandrasekara', 'Thenuka Jayalath', 'Udara Madawala', 'Vindya Karunaratna',
+  'Waruna Gamage', 'Xayna Perera', 'Yasiru Thilakasiri', 'Zuhaira Nazeer',
+  'Achini Dissanayake', 'Bhanu Karunaratne', 'Chathurya Rathnasiri', 'Dakshitha Wijesiri',
+  'Ekanayake Sisira', 'Fonseka Malith', 'Gunasena Thilina', 'Hettiarachchi Ruwani',
+];
+
+// Deterministic names for 7 extra supervisors
+const BULK_SUPERVISOR_DATA = [
+  { email: 'supervisor01@demo.com', name: 'Dr. Thilani Wickramasinghe', title: 'Dr.', department: 'Data Science' },
+  { email: 'supervisor02@demo.com', name: 'Prof. Rajitha Bandara', title: 'Prof.', department: 'Artificial Intelligence' },
+  { email: 'supervisor03@demo.com', name: 'Dr. Chamara Dissanayake', title: 'Dr.', department: 'Mobile Computing' },
+  { email: 'supervisor04@demo.com', name: 'Dr. Malini Weerasekara', title: 'Dr.', department: 'Cybersecurity' },
+  { email: 'supervisor05@demo.com', name: 'Prof. Sanath Fernando', title: 'Prof.', department: 'Human-Computer Interaction' },
+  { email: 'supervisor06@demo.com', name: 'Dr. Priyanka Jayawardena', title: 'Dr.', department: 'Health Informatics' },
+  { email: 'supervisor07@demo.com', name: 'Prof. Nishantha Rathnayake', title: 'Prof.', department: 'Software Architecture' },
+];
+
+// 15 additional project topics (total will be 25)
+const BULK_TOPICS = [
+  { slug: 'accessible-campus-navigation', title: 'Accessible Campus Navigation App', domain: 'accessibility', difficulty: 'MEDIUM' as const, maxTeams: 1, maxStudents: 5, required: ['mobile_development', 'ui_ux'], preferred: ['frontend', 'research'] },
+  { slug: 'real-time-bus-tracker', title: 'Real-Time Campus Bus Tracker', domain: 'mobile', difficulty: 'MEDIUM' as const, maxTeams: 2, maxStudents: 8, required: ['mobile_development', 'backend'], preferred: ['frontend', 'database'] },
+  { slug: 'peer-review-system', title: 'Automated Peer Review & Feedback System', domain: 'education', difficulty: 'HIGH' as const, maxTeams: 1, maxStudents: 5, required: ['backend', 'database'], preferred: ['frontend', 'ai_ml'] },
+  { slug: 'sports-facility-booking', title: 'Smart Sports Facility Booking Platform', domain: 'web', difficulty: 'LOW' as const, maxTeams: 2, maxStudents: 8, required: ['frontend', 'backend'], preferred: ['database', 'ui_ux'] },
+  { slug: 'student-mental-health-tracker', title: 'Anonymous Student Mental Health Check-In', domain: 'health', difficulty: 'HIGH' as const, maxTeams: 1, maxStudents: 5, required: ['frontend', 'database', 'ui_ux'], preferred: ['research', 'backend'] },
+  { slug: 'campus-lost-and-found', title: 'AI-Powered Lost and Found Portal', domain: 'ai', difficulty: 'MEDIUM' as const, maxTeams: 1, maxStudents: 5, required: ['ai_ml', 'backend'], preferred: ['frontend', 'database'] },
+  { slug: 'e-voting-system', title: 'Secure E-Voting System for Student Elections', domain: 'security', difficulty: 'HIGH' as const, maxTeams: 1, maxStudents: 4, required: ['backend', 'database', 'devops'], preferred: ['frontend', 'testing'] },
+  { slug: 'internship-matching-platform', title: 'AI Internship Matching Platform', domain: 'ai', difficulty: 'HIGH' as const, maxTeams: 2, maxStudents: 8, required: ['ai_ml', 'backend', 'database'], preferred: ['frontend', 'ui_ux'] },
+  { slug: 'carbon-footprint-tracker', title: 'Personal Carbon Footprint Tracker', domain: 'sustainability', difficulty: 'MEDIUM' as const, maxTeams: 1, maxStudents: 5, required: ['frontend', 'backend'], preferred: ['database', 'ui_ux', 'research'] },
+  { slug: 'online-tutoring-platform', title: 'Peer-to-Peer Online Tutoring Platform', domain: 'education', difficulty: 'MEDIUM' as const, maxTeams: 2, maxStudents: 8, required: ['frontend', 'backend', 'database'], preferred: ['ui_ux', 'testing'] },
+  { slug: 'smart-parking-system', title: 'Smart Campus Parking Management System', domain: 'iot', difficulty: 'HIGH' as const, maxTeams: 1, maxStudents: 5, required: ['backend', 'database', 'devops'], preferred: ['frontend', 'mobile_development'] },
+  { slug: 'research-paper-summariser', title: 'AI Research Paper Summariser', domain: 'ai', difficulty: 'HIGH' as const, maxTeams: 1, maxStudents: 4, required: ['ai_ml', 'backend'], preferred: ['research', 'documentation', 'frontend'] },
+  { slug: 'freelance-student-marketplace', title: 'Freelance Student Services Marketplace', domain: 'web', difficulty: 'MEDIUM' as const, maxTeams: 2, maxStudents: 8, required: ['frontend', 'backend', 'database'], preferred: ['ui_ux', 'testing'] },
+  { slug: 'pharmacy-stock-manager', title: 'Healthcare Pharmacy Stock Manager', domain: 'health', difficulty: 'MEDIUM' as const, maxTeams: 1, maxStudents: 5, required: ['backend', 'database'], preferred: ['frontend', 'testing', 'documentation'] },
+  // Intentional no-interest topic
+  { slug: 'legacy-cobol-migration-tool', title: 'Legacy COBOL System Migration Tool', domain: 'legacy', difficulty: 'HIGH' as const, maxTeams: 1, maxStudents: 3, required: ['backend', 'database', 'documentation'], preferred: ['testing'] },
+];
+
+// Skill persona profiles for bulk students (6 types × 10 students = 60)
+type SkillPersona = { skills: { key: string; level: number }[]; roles: string[]; capacityHours: number; complete: boolean; hasPrefs: boolean };
+
+function getBulkStudentPersona(idx: number): SkillPersona {
+  const type = Math.floor((idx - 1) / 10); // 0–5
+  switch (type) {
+    case 0: // Frontend/UI students (1-10)
+      return { skills: [{ key: 'frontend', level: 4 + (idx % 2) }, { key: 'ui_ux', level: 4 }, { key: 'testing', level: 2 }], roles: ['developer', 'ui_designer'], capacityHours: 12, complete: true, hasPrefs: true };
+    case 1: // Backend/DB students (11-20)
+      return { skills: [{ key: 'backend', level: 4 + (idx % 2) }, { key: 'database', level: 4 }, { key: 'devops', level: 2 }], roles: ['developer', 'tech_lead'], capacityHours: 15, complete: true, hasPrefs: true };
+    case 2: // AI/ML students (21-30)
+      return { skills: [{ key: 'ai_ml', level: 4 + (idx % 2) }, { key: 'backend', level: 3 }, { key: 'research', level: 3 }], roles: ['researcher', 'developer'], capacityHours: 10, complete: true, hasPrefs: true };
+    case 3: // Mobile/DevOps students (31-40)
+      return { skills: [{ key: 'mobile_development', level: 4 + (idx % 2) }, { key: 'devops', level: 3 }, { key: 'frontend', level: 2 }], roles: ['developer', 'devops_engineer'], capacityHours: 12, complete: true, hasPrefs: true };
+    case 4: // Documentation/Research/Presentation students (41-50)
+      return { skills: [{ key: 'documentation', level: 4 }, { key: 'research', level: 4 }, { key: 'presentation', level: 4 + (idx % 2) }], roles: ['project_manager', 'documenter'], capacityHours: 8, complete: true, hasPrefs: true };
+    case 5: // Conflict scenario students (51-60): incomplete profiles, no prefs for some
+    default:
+      return {
+        skills: idx <= 54 ? [{ key: 'frontend', level: 3 }, { key: 'backend', level: 2 }] : [],
+        roles: idx <= 56 ? ['developer'] : [],
+        capacityHours: idx <= 53 ? 6 : 8,
+        complete: idx <= 54,
+        hasPrefs: idx <= 55, // students 56-60 have no submitted prefs
+      };
+  }
+}
+
+async function seedPart13BulkData(passwordHash: string) {
+  // Find active term and batch
+  const activeTerm = await prisma.academicTerm.findFirst({ where: { status: 'ACTIVE' } });
+  if (!activeTerm) { console.log('  ⚠ No active term — skipping Part 13 bulk data'); return; }
+
+  const activeBatch = await prisma.formationBatch.findFirst({ where: { termId: activeTerm.id }, orderBy: { createdAt: 'desc' } });
+  if (!activeBatch) { console.log('  ⚠ No formation batch — skipping Part 13 bulk data'); return; }
+
+  // ── 1. Extra supervisors ──────────────────────────────────────────────────────
+  const bulkSupervisorProfiles: { id: string }[] = [];
+  for (const s of BULK_SUPERVISOR_DATA) {
+    const user = await prisma.user.upsert({
+      where: { email: s.email },
+      update: {},
+      create: { email: s.email, name: s.name, role: 'SUPERVISOR', passwordHash, supervisorProfile: { create: { title: s.title, department: s.department } }, accessibilitySetting: { create: {} } },
+    });
+    const profile = await prisma.supervisorProfile.findUniqueOrThrow({ where: { userId: user.id } });
+    bulkSupervisorProfiles.push(profile);
+  }
+  console.log(`  ✓ Bulk supervisors upserted: ${bulkSupervisorProfiles.length}`);
+
+  // ── 2. Extra project topics ────────────────────────────────────────────────
+  const bulkTopicIds: Record<string, string> = {};
+  for (let i = 0; i < BULK_TOPICS.length; i++) {
+    const t = BULK_TOPICS[i];
+    const supervisorProfileId = bulkSupervisorProfiles[i % bulkSupervisorProfiles.length]?.id ?? null;
+    const upserted = await prisma.projectTopic.upsert({
+      where: { termId_slug: { termId: activeTerm.id, slug: t.slug } },
+      update: {},
+      create: {
+        termId: activeTerm.id,
+        slug: t.slug,
+        title: t.title,
+        description: `${t.title} — a capstone project for the 2026 Semester 1 cohort.`,
+        domain: t.domain,
+        difficulty: t.difficulty,
+        status: 'OPEN',
+        minTeams: 0,
+        maxTeams: t.maxTeams,
+        maxStudents: t.maxStudents,
+        requiredSkills: t.required as Prisma.InputJsonValue,
+        preferredSkills: t.preferred as Prisma.InputJsonValue,
+        supervisorProfileId: t.slug === 'legacy-cobol-migration-tool' ? null : supervisorProfileId,
+      },
+    });
+    bulkTopicIds[t.slug] = upserted.id;
+  }
+  console.log(`  ✓ Bulk project topics upserted: ${BULK_TOPICS.length}`);
+
+  // Collect all open topic IDs for preference assignment
+  const allOpenTopics = await prisma.projectTopic.findMany({
+    where: { termId: activeTerm.id, status: 'OPEN' },
+    select: { id: true, slug: true },
+    orderBy: { createdAt: 'asc' },
+  });
+  const allTopicIds = allOpenTopics.map((t) => t.id);
+
+  // ── 3. Bulk students ──────────────────────────────────────────────────────────
+  let createdStudents = 0;
+  for (let i = 1; i <= 60; i++) {
+    const email = `student${String(i).padStart(3, '0')}@demo.com`;
+    const name = BULK_STUDENT_NAMES[i - 1] ?? `Student ${i}`;
+    const studentId = `BULK${String(i).padStart(4, '0')}`;
+    const persona = getBulkStudentPersona(i);
+
+    // User + StudentProfile
+    const user = await prisma.user.upsert({
+      where: { email },
+      update: {},
+      create: { email, name, role: 'STUDENT', passwordHash, studentProfile: { create: { studentId, year: 3, faculty: 'Computing' } }, accessibilitySetting: { create: {} } },
+    });
+
+    const studentProfile = await prisma.studentProfile.findUniqueOrThrow({ where: { userId: user.id } });
+
+    // StudentIntake
+    await prisma.studentIntake.upsert({
+      where: { termId_studentProfileId: { termId: activeTerm.id, studentProfileId: studentProfile.id } },
+      update: {},
+      create: { termId: activeTerm.id, studentProfileId: studentProfile.id, status: 'READY_FOR_FORMATION', cohortLabel: 'Cohort A', source: 'bulk-seed' },
+    });
+
+    const intake = await prisma.studentIntake.findUniqueOrThrow({
+      where: { termId_studentProfileId: { termId: activeTerm.id, studentProfileId: studentProfile.id } },
+    });
+
+    // FormationBatchStudent
+    await prisma.formationBatchStudent.upsert({
+      where: { batchId_studentIntakeId: { batchId: activeBatch.id, studentIntakeId: intake.id } },
+      update: {},
+      create: { batchId: activeBatch.id, studentIntakeId: intake.id, status: 'INCLUDED' },
+    });
+
+    // StudentFormationProfile (only if persona is complete or partial)
+    if (persona.complete || persona.skills.length > 0) {
+      const fpStatus = persona.complete ? 'SUBMITTED' : 'DRAFT';
+      await prisma.studentFormationProfile.upsert({
+        where: { studentProfileId: studentProfile.id },
+        update: {},
+        create: {
+          studentProfileId: studentProfile.id,
+          status: fpStatus,
+          weeklyCapacityHours: persona.capacityHours,
+          maxConcurrentTasks: persona.capacityHours >= 12 ? 5 : 3,
+          domainPreferences: ['web', 'ai', 'mobile'] as Prisma.InputJsonValue,
+          safeSupportPreferences: { writtenInstructions: true, clearDoneDefinition: true } as Prisma.InputJsonValue,
+          completionScore: persona.complete ? 85 : 40,
+          submittedAt: persona.complete ? new Date() : null,
+        },
+      });
+
+      const fp = await prisma.studentFormationProfile.findUniqueOrThrow({ where: { studentProfileId: studentProfile.id } });
+
+      // Skills
+      for (const skill of persona.skills) {
+        await prisma.studentSkill.upsert({
+          where: { profileId_skillKey: { profileId: fp.id, skillKey: skill.key } },
+          update: {},
+          create: { profileId: fp.id, skillKey: skill.key, skillLabel: skill.key.replace(/_/g, ' '), category: 'technical', level: skill.level, interest: 4 },
+        });
+      }
+
+      // Availability (simple deterministic pattern by index)
+      const weekdays = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY'] as const;
+      const blocks = ['MORNING', 'AFTERNOON', 'EVENING'] as const;
+      for (const day of weekdays) {
+        for (const block of blocks) {
+          const level = block === 'AFTERNOON' && i % 3 !== 0 ? 'PREFERRED' : block === 'MORNING' ? 'AVAILABLE' : 'LIMITED';
+          await prisma.studentAvailabilitySlot.upsert({
+            where: { profileId_dayOfWeek_block: { profileId: fp.id, dayOfWeek: day, block } },
+            update: {},
+            create: { profileId: fp.id, dayOfWeek: day, block, level },
+          });
+        }
+      }
+
+      // Role preferences
+      for (const roleKey of persona.roles) {
+        await prisma.studentRolePreference.upsert({
+          where: { profileId_roleKey: { profileId: fp.id, roleKey } },
+          update: {},
+          create: { profileId: fp.id, roleKey, roleLabel: roleKey.replace(/_/g, ' '), preferenceLevel: 4, confidenceLevel: 3, avoid: false },
+        });
+      }
+    }
+
+    // Project preferences (most students get 3 submitted prefs)
+    if (persona.hasPrefs && allTopicIds.length >= 3) {
+      // Skip if student already has submitted preferences (idempotency)
+      const existingPrefCount = await prisma.projectPreference.count({
+        where: { termId: activeTerm.id, studentProfileId: studentProfile.id, status: 'SUBMITTED' },
+      });
+      if (existingPrefCount === 0) {
+        // Rotate through topics deterministically; first-choice concentrates on topic 0 (popular)
+        const popularTopicId = allTopicIds[0]; // Over-selected
+        const pick1 = i <= 20 ? popularTopicId : allTopicIds[i % allTopicIds.length];
+        const pick2 = allTopicIds[(i + 2) % allTopicIds.length];
+        const pick3 = allTopicIds[(i + 5) % allTopicIds.length];
+
+        const picks = [pick1, pick2, pick3].filter((id, idx, arr) => arr.indexOf(id) === idx); // deduplicate
+        if (picks.length < 3) picks.push(allTopicIds[(i + 8) % allTopicIds.length]);
+        const finalPicks = Array.from(new Set(picks)).slice(0, 3);
+
+        for (let rank = 0; rank < finalPicks.length; rank++) {
+          await prisma.projectPreference.create({
+            data: { termId: activeTerm.id, studentProfileId: studentProfile.id, topicId: finalPicks[rank], rank: rank + 1, status: 'SUBMITTED' },
+          });
+        }
+      }
+    }
+
+    createdStudents++;
+  }
+  console.log(`  ✓ Bulk students upserted: ${createdStudents}`);
+
+  // ── 4. Refresh conflict detection for the term ────────────────────────────
+  // Delete old unresolved conflicts and recalculate
+  await prisma.projectSelectionConflict.deleteMany({ where: { termId: activeTerm.id, resolved: false } });
+
+  // Collect preference counts per topic
+  const topicPrefCounts = await prisma.projectPreference.groupBy({
+    by: ['topicId'],
+    where: { termId: activeTerm.id, status: 'SUBMITTED' },
+    _count: { topicId: true },
+  });
+  const firstChoiceCounts = await prisma.projectPreference.groupBy({
+    by: ['topicId'],
+    where: { termId: activeTerm.id, status: 'SUBMITTED', rank: 1 },
+    _count: { topicId: true },
+  });
+  const firstChoiceMap = new Map(firstChoiceCounts.map((r) => [r.topicId, r._count.topicId]));
+  const totalMap = new Map(topicPrefCounts.map((r) => [r.topicId, r._count.topicId]));
+
+  const allTopicsForConflict = await prisma.projectTopic.findMany({
+    where: { termId: activeTerm.id, status: 'OPEN' },
+    select: { id: true, title: true, maxTeams: true, maxStudents: true, requiredSkills: true },
+  });
+
+  const newConflicts: Prisma.ProjectSelectionConflictCreateManyInput[] = [];
+
+  for (const topic of allTopicsForConflict) {
+    const total = totalMap.get(topic.id) ?? 0;
+    const firstChoice = firstChoiceMap.get(topic.id) ?? 0;
+
+    if (total === 0) {
+      newConflicts.push({ termId: activeTerm.id, topicId: topic.id, type: 'NO_INTEREST', severity: 'MEDIUM', title: `No interest in "${topic.title}"`, message: 'No students selected this topic.', resolved: false });
+    } else {
+      if (firstChoice > topic.maxTeams * 5) {
+        newConflicts.push({ termId: activeTerm.id, topicId: topic.id, type: 'OVER_SELECTED', severity: 'HIGH', title: `"${topic.title}" heavily over-selected`, message: `${firstChoice} students ranked this as their first choice (capacity: ${topic.maxTeams} team${topic.maxTeams !== 1 ? 's' : ''}).`, resolved: false });
+      } else if (firstChoice > topic.maxTeams * 3) {
+        newConflicts.push({ termId: activeTerm.id, topicId: topic.id, type: 'OVER_SELECTED', severity: 'MEDIUM', title: `"${topic.title}" is over-selected`, message: `${firstChoice} students ranked this first (capacity: ${topic.maxTeams}).`, resolved: false });
+      }
+      if (topic.maxStudents && total > topic.maxStudents) {
+        newConflicts.push({ termId: activeTerm.id, topicId: topic.id, type: 'CAPACITY_EXCEEDED', severity: 'HIGH', title: `"${topic.title}" exceeds student capacity`, message: `${total} students interested, max is ${topic.maxStudents}.`, resolved: false });
+      }
+    }
+  }
+
+  // Missing preferences: students in intake with no submitted prefs
+  const studentsWithPrefs = await prisma.projectPreference.groupBy({
+    by: ['studentProfileId'],
+    where: { termId: activeTerm.id, status: 'SUBMITTED' },
+  });
+  const studentsWithPrefsSet = new Set(studentsWithPrefs.map((r) => r.studentProfileId));
+  const intakeStudents = await prisma.studentIntake.findMany({
+    where: { termId: activeTerm.id, status: { in: ['READY_FOR_FORMATION', 'ASSIGNED_TO_TEAM'] } },
+    select: { studentProfileId: true },
+  });
+  const missingPrefCount = intakeStudents.filter((s) => !studentsWithPrefsSet.has(s.studentProfileId)).length;
+  if (missingPrefCount > 0) {
+    newConflicts.push({ termId: activeTerm.id, type: 'STUDENT_MISSING_PREFERENCES', severity: missingPrefCount >= 10 ? 'HIGH' : 'MEDIUM', title: `${missingPrefCount} student${missingPrefCount !== 1 ? 's' : ''} missing project preferences`, message: `${missingPrefCount} students in intake have not submitted project preferences.`, resolved: false });
+  }
+
+  if (newConflicts.length > 0) {
+    await prisma.projectSelectionConflict.createMany({ data: newConflicts });
+  }
+  console.log(`  ✓ Project conflicts recalculated: ${newConflicts.length}`);
 }
 
 // ── Helper functions ──────────────────────────────────────────────────────────

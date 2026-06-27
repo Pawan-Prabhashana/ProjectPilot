@@ -205,3 +205,15 @@ Neurodivergent / cognitive support data is **private to the student**:
   visible factor in team formation, ranking, or role assignment.
 - Coordinator and supervisor views show **operational data only** (counts, setup gaps, team health,
   capacity), consistent with data minimisation and purpose limitation principles.
+
+**Stage 10 (Part 10) — End-to-End Workflow Connection (done):**
+Student dashboard now shows a "My Capstone Journey" card at the top of `/dashboard/my-work`, guiding
+students through Formation Profile → Preferences → Team → Tasks. The coordinator dashboard shows an
+8-step Formation Workflow checklist with live status (Done/Ready/Action Needed). Supervisor dashboard
+includes a Team Tasks & Workload action card. See `docs/END_TO_END_WORKFLOW.md`.
+
+**Stage 13 (Part 13) — Expanded Demo Dataset (done):**
+Seed expanded to 72 students (12 named + 60 bulk), 10 supervisors (3 named + 7 bulk), and 25 project
+topics (10 original + 15 new). All 60 bulk students have formation profiles, skills, availability,
+role preferences, and project preferences. Conflict scenarios are seeded deterministically. Running
+`npm run db:setup` twice produces no duplicates. See `docs/DEMO_SEED_SCENARIOS.md`.
