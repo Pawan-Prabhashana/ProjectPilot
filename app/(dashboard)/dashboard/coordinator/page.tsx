@@ -300,6 +300,12 @@ export default async function CoordinatorDashboardPage() {
             title="System Overview"
             description="Platform-wide counts, setup health, and team operational status."
           />
+          <OperationCard
+            href="/dashboard/coordinator/conflicts"
+            icon={<AlertTriangle className="h-4 w-4 text-orange-500" />}
+            title="Conflict Dashboard"
+            description="Aggregated skill gaps, workload risks, formation warnings, and recommended actions."
+          />
         </div>
       </section>
 

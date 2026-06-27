@@ -24,6 +24,7 @@ import {
   Bell,
   Layers,
   GitMerge,
+  AlertTriangle,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -232,6 +233,13 @@ const navItems: NavItem[] = [
     icon: GitMerge,
     roles: ['COORDINATOR'],
     description: 'Review, adjust, and publish draft teams',
+  },
+  {
+    href: '/dashboard/coordinator/conflicts',
+    label: 'Conflict Dashboard',
+    icon: AlertTriangle,
+    roles: ['COORDINATOR'],
+    description: 'Skill gaps, workload risks, and formation warnings',
   },
   {
     href: '/dashboard/consultations',

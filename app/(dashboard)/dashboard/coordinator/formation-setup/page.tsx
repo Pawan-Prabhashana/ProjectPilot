@@ -300,6 +300,28 @@ export default async function FormationSetupPage() {
             </div>
           </section>
 
+          {/* ── Section 4d: Conflict Dashboard link (Part 9) ── */}
+          <section>
+            <div className="flex items-center justify-between gap-4 rounded-xl border border-orange-200 bg-orange-50/30 px-5 py-4">
+              <div className="flex items-start gap-3">
+                <AlertTriangle className="h-5 w-5 text-orange-600 mt-0.5 shrink-0" />
+                <div>
+                  <p className="text-sm font-semibold text-orange-800">Conflict &amp; Gap Detection Dashboard</p>
+                  <p className="text-xs text-orange-700 mt-0.5">
+                    View aggregated risks across readiness, project selection, draft formation, team
+                    composition, workload, and team health.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/dashboard/coordinator/conflicts"
+                className="flex items-center gap-1.5 rounded-lg bg-orange-600 px-4 py-2 text-sm font-medium text-white hover:bg-orange-700 transition-colors shrink-0"
+              >
+                View Risks <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+          </section>
+
           {/* ── Section 5: Formation batches ── */}
           <section>
             <h2 className="mb-3 flex items-center gap-2 text-base font-semibold text-foreground">
