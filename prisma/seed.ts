@@ -205,15 +205,21 @@ async function main() {
       },
     });
 
-    // Milestones
-    const milestones = await createMilestones(project.id);
+    // Milestones — idempotent: skip if already seeded for this project
+    const existingMilestoneCount = await prisma.milestone.count({ where: { projectId: project.id } });
+    const milestones = existingMilestoneCount > 0
+      ? await prisma.milestone.findMany({ where: { projectId: project.id }, orderBy: { orderIndex: 'asc' }, select: { id: true } })
+      : await createMilestones(project.id);
 
-    // Tasks (realistic mix across statuses and assignees)
+    // Tasks (realistic mix across statuses and assignees) — idempotent: skip if already seeded
     const teamMembers = await prisma.teamMember.findMany({
       where: { teamId: team.id },
       select: { userId: true },
     });
-    await createTasks(project.id, milestones, teamMembers.map((m) => m.userId));
+    const existingTaskCount = await prisma.task.count({ where: { projectId: project.id } });
+    if (existingTaskCount === 0) {
+      await createTasks(project.id, milestones, teamMembers.map((m) => m.userId));
+    }
 
     // Part 8: capacity-aware task allocation demo data (Team Vertex only — keeps seed minimal)
     if (teamDef.slug === 'team-vertex') {
@@ -239,22 +245,29 @@ async function main() {
     console.log(`    ✓ Project, milestones, tasks, and consultation created`);
   }
 
-  // ── Team health signals ───────────────────────────────────────────────────────
+  // ── Team health signals — idempotent: one signal per team per day ─────────────
 
   const allTeams = await prisma.team.findMany({ select: { id: true } });
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
   for (const { id } of allTeams) {
-    await prisma.teamHealthSignal.create({
-      data: {
-        teamId: id,
-        healthStatus: 'ON_TRACK',
-        overdueTaskCount: Math.floor(Math.random() * 2),
-        totalOpenTasks: Math.floor(Math.random() * 6) + 3,
-        activeMemberCount: 3,
-        hasActivityThisWeek: true,
-        nextMilestoneIsOnTrack: true,
-        workloadIsFair: true,
-      },
+    const existingSignal = await prisma.teamHealthSignal.findFirst({
+      where: { teamId: id, recordedAt: { gte: today } },
     });
+    if (!existingSignal) {
+      await prisma.teamHealthSignal.create({
+        data: {
+          teamId: id,
+          healthStatus: 'ON_TRACK',
+          overdueTaskCount: Math.floor(Math.random() * 2),
+          totalOpenTasks: Math.floor(Math.random() * 6) + 3,
+          activeMemberCount: 3,
+          hasActivityThisWeek: true,
+          nextMilestoneIsOnTrack: true,
+          workloadIsFair: true,
+        },
+      });
+    }
   }
 
   // ── Demo enrichments: dependency links + overload signals + accessibility ──────

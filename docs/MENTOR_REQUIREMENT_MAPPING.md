@@ -179,9 +179,13 @@ the team page (coordinator/supervisor/leader see every member; students see only
 Applying a recommendation stores the rationale and score breakdown on the `Task` row and a
 `TaskAllocationRecommendation` audit record. See `docs/CAPACITY_AWARE_TASK_ALLOCATION.md`.
 
-**Stage 9 (Part 9+) — Oversight (planned):**
-Capacity-aware supervisor allocation, a conflict/gap dashboard, and ongoing team-health-driven
-rebalancing.
+**Stage 9 (Part 9) — Conflict & Gap Detection Dashboard (done):**
+A coordinator-facing dashboard (`/dashboard/coordinator/conflicts`) aggregating all operational and
+formation risks from 7 sources: formation readiness, project selection conflicts, draft formation
+warnings, published team gaps, workload/task risks, supervisor capacity, and team health. Risks are
+severity-graded (CRITICAL → INFO), filtered client-side, and linked to the relevant action pages.
+Includes recommended actions panel and integration links from the coordinator dashboard, Formation
+Setup, and Team Formation workspace. See `docs/CONFLICT_GAP_DETECTION_DASHBOARD.md`.
 
 Throughout every stage, the neurodivergent support layer is used only as **safe, private support
 preferences** that shape a student's own experience (clearer tasks, manageable workload), never as a

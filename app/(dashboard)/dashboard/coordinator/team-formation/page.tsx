@@ -454,6 +454,12 @@ export default function TeamFormationWorkspacePage() {
                       {sev}: {count as number}
                     </Badge>
                   ))}
+                <button
+                  onClick={() => router.push('/dashboard/coordinator/conflicts')}
+                  className="ml-2 text-orange-700 underline hover:text-orange-900"
+                >
+                  View full risk dashboard →
+                </button>
               </div>
             )}
           </CardContent>
