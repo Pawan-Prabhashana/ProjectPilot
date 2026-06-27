@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { requireAuth } from '@/lib/rbac';
 import { resolveActiveWorkspace } from '@/lib/services/workspace-access';
 import { getStudentMyWorkDashboard } from '@/lib/services/dashboard/student-dashboard';
+import { getStudentCapstoneJourney } from '@/lib/services/dashboard/capstone-journey';
+import type { JourneyStep, StudentCapstoneJourney } from '@/lib/services/dashboard/capstone-journey';
 import { InfoCallout } from '@/components/shared/info-callout';
 import { PageHeader } from '@/components/shared/page-header';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -68,6 +70,7 @@ export default async function MyWorkPage({
 
   const workspace = await resolveActiveWorkspace(user, teamId);
   const data = await getStudentMyWorkDashboard(user.id, workspace?.teamId);
+  const journey = await getStudentCapstoneJourney(user.id);
 
   const teamParam = workspace ? `?teamId=${workspace.teamId}` : '';
 
@@ -83,9 +86,13 @@ export default async function MyWorkPage({
           title="My Work"
           description="Your personal task and support dashboard."
         />
-        <InfoCallout variant="info" title="Not assigned to a team yet">
-          You are not assigned to a team yet. Please contact your coordinator to be added to a team.
-        </InfoCallout>
+        {/* Capstone Journey shown even without a team */}
+        {journey && <CapstoneJourneyCard journey={journey} />}
+        {!journey && (
+          <InfoCallout variant="info" title="Not assigned to a team yet">
+            You are not assigned to a team yet. Complete your Formation Profile and submit project preferences, then wait for the coordinator to publish teams.
+          </InfoCallout>
+        )}
       </div>
     );
   }
@@ -134,6 +141,9 @@ export default async function MyWorkPage({
         title="My Work"
         description="What should you personally focus on today?"
       />
+
+      {/* Capstone Journey — always shown at top */}
+      {journey && <CapstoneJourneyCard journey={journey} />}
 
       {/* Workspace identity */}
       <div className="flex flex-wrap items-center gap-2.5 rounded-lg border bg-muted/40 px-4 py-2.5 text-sm">
@@ -610,4 +620,68 @@ function SupportCard({ href, icon, title, description }: SupportCardProps) {
       </Card>
     </Link>
   );
+}
+
+// ── Capstone Journey Card ─────────────────────────────────────────────────────
+
+const JOURNEY_STATUS_ICON: Record<string, React.ReactNode> = {
+  done: <CheckSquare className="h-4 w-4 text-emerald-600 shrink-0" />,
+  in_progress: <Clock className="h-4 w-4 text-sky-600 shrink-0 animate-pulse" />,
+  action_required: <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />,
+  pending: <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/30 shrink-0" />,
+};
+
+const JOURNEY_STATUS_STYLES: Record<string, string> = {
+  done: 'text-emerald-700 bg-emerald-50/50',
+  in_progress: 'text-sky-700 bg-sky-50/50',
+  action_required: 'text-amber-700 bg-amber-50/60',
+  pending: 'text-muted-foreground',
+};
+
+function CapstoneJourneyCard({ journey }: { journey: StudentCapstoneJourney }) {
+  const { steps, nextActionLabel, nextActionHref, teamName, termName } = journey;
+  return (
+    <Card className="border-violet-200 bg-violet-50/20">
+      <CardHeader className="pb-2">
+        <CardTitle className="text-sm flex items-center gap-2 text-violet-800">
+          <Zap className="h-4 w-4" />
+          My Capstone Journey
+          {termName && <span className="font-normal text-xs text-violet-600 ml-1">· {termName}</span>}
+          {teamName && <Badge className="bg-violet-100 text-violet-700 text-xs ml-1">{teamName}</Badge>}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="pb-3">
+        <div className="space-y-1 mb-3">
+          {steps.map((step) => (
+            <JourneyStepRow key={step.key} step={step} />
+          ))}
+        </div>
+        {nextActionHref && (
+          <Link href={nextActionHref}>
+            <div className="flex items-center justify-between rounded-lg bg-violet-600 px-4 py-2.5 text-white hover:bg-violet-700 transition-colors">
+              <span className="text-sm font-medium">{nextActionLabel}</span>
+              <ArrowRight className="h-4 w-4" />
+            </div>
+          </Link>
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function JourneyStepRow({ step }: { step: JourneyStep }) {
+  const row = (
+    <div className={cn('flex items-center gap-2.5 rounded px-3 py-2 text-sm', JOURNEY_STATUS_STYLES[step.status])}>
+      {JOURNEY_STATUS_ICON[step.status] ?? JOURNEY_STATUS_ICON.pending}
+      <div className="flex-1 min-w-0">
+        <span className="font-medium">{step.label}</span>
+        <span className="ml-2 text-xs opacity-70 truncate">{step.detail}</span>
+      </div>
+      {step.href && step.actionLabel && (
+        <span className="text-xs underline opacity-60 shrink-0">{step.actionLabel}</span>
+      )}
+    </div>
+  );
+  if (step.href) return <Link href={step.href}>{row}</Link>;
+  return row;
 }
