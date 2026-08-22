@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
-import { requireAuth } from '@/lib/rbac';
+import { requireApiAuth } from '@/lib/api-auth';
 import { analyzeSocialSubtext } from '@/lib/services/communication-support';
 
 const schema = z.object({
@@ -9,7 +9,8 @@ const schema = z.object({
 
 export async function POST(req: Request) {
   try {
-    await requireAuth();
+    const auth = await requireApiAuth();
+    if (!auth.ok) return auth.response;
     const body = await req.json();
     const { text } = schema.parse(body);
     const result = analyzeSocialSubtext(text);

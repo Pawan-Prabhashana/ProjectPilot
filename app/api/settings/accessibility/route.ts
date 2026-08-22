@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/rbac';
+import { requireApiAuth } from '@/lib/api-auth';
 import { upsertAccessibilitySettings } from '@/lib/services/cognitive-support';
 import { log } from '@/lib/logger';
 import { z } from 'zod';
@@ -15,7 +15,9 @@ const schema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuth();
+    const auth = await requireApiAuth();
+    if (!auth.ok) return auth.response;
+    const { user } = auth;
     const body = await req.json();
     const parsed = schema.safeParse(body);
     if (!parsed.success) {

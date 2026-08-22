@@ -16,14 +16,18 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Role is always STUDENT from self-registration (enforced by schema).
+    // SUPERVISOR and COORDINATOR accounts are provisioned by administrators only.
     const { email, password, name, role } = parsed.data;
-    const normalised = email.toLowerCase();
 
-    const existing = await prisma.user.findUnique({ where: { email: normalised } });
+    const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
+      // Return 200 with a generic message to prevent email enumeration.
+      // The client shows the same "check your inbox" message regardless.
+      log.warn('auth.register.duplicate', { email });
       return NextResponse.json(
-        { message: 'An account with this email already exists.' },
-        { status: 409 }
+        { message: 'If this email is not already registered, your account has been created.' },
+        { status: 200 }
       );
     }
 
@@ -31,21 +35,20 @@ export async function POST(req: NextRequest) {
 
     await prisma.user.create({
       data: {
-        email: normalised,
+        email,
         name,
         role,
         passwordHash,
-        // Create the role-specific profile in the same transaction
-        studentProfile: role === 'STUDENT' ? { create: {} } : undefined,
-        supervisorProfile: role === 'SUPERVISOR' ? { create: {} } : undefined,
-        coordinatorProfile: role === 'COORDINATOR' ? { create: {} } : undefined,
-        // Default accessibility settings for every new user
+        studentProfile: { create: {} },
         accessibilitySetting: { create: {} },
       },
     });
 
     log.info('auth.register.success', { role });
-    return NextResponse.json({ message: 'Account created successfully.' }, { status: 201 });
+    return NextResponse.json(
+      { message: 'If this email is not already registered, your account has been created.' },
+      { status: 201 }
+    );
   } catch (error) {
     log.error('auth.register.failed', { error: error instanceof Error ? error.message : String(error) });
     return NextResponse.json(
