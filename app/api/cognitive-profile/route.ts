@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuth } from '@/lib/rbac';
+import { requireApiAuth } from '@/lib/api-auth';
 import { cognitiveProfileSchema } from '@/lib/validations/cognitive-profile';
 import { upsertCognitiveProfile } from '@/lib/services/cognitive-support';
 import { log } from '@/lib/logger';
 
 export async function POST(req: NextRequest) {
   try {
-    const user = await requireAuth();
+    const auth = await requireApiAuth();
+    if (!auth.ok) return auth.response;
+    const { user } = auth;
     if (user.role !== 'STUDENT') {
       return NextResponse.json({ message: 'Only students have a cognitive profile.' }, { status: 403 });
     }
