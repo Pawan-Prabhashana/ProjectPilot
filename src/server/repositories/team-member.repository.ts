@@ -35,3 +35,16 @@ export async function addTeamMember(
     select: { id: true, userId: true, teamId: true },
   });
 }
+
+export async function isUserOnTeam(
+  userId: UserId,
+  teamId: TeamId,
+): Promise<boolean> {
+  const membership = await prisma.teamMember.findUnique({
+    where: {
+      userId_teamId: { userId, teamId },
+    },
+    select: { id: true },
+  });
+  return membership !== null;
+}
