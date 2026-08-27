@@ -2,7 +2,7 @@
  * Phase 1 seed — idempotent demo users, one team, one project.
  */
 import { hash } from "bcryptjs";
-import { PrismaClient, Role } from "@prisma/client";
+import { PrismaClient, Role, TaskPriority, TaskStatus } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -60,14 +60,48 @@ async function main(): Promise<void> {
     where: { teamId: team.id, title: "Year-long Capstone Project" },
   });
 
-  if (!existingProject) {
-    await prisma.project.create({
+  const project =
+    existingProject ??
+    (await prisma.project.create({
       data: {
         title: "Year-long Capstone Project",
         description: "Foundational project record for Phase 1 of ProjectPilot.",
         teamId: team.id,
       },
+    }));
+
+  const demoTasks: Array<{ title: string; description: string; status: TaskStatus }> = [
+    {
+      title: "Draft literature review",
+      description: "Summarise related work for the first milestone.",
+      status: TaskStatus.IN_PROGRESS,
+    },
+    {
+      title: "Set up project repository",
+      description: "Create the shared GitHub repo and branch protection.",
+      status: TaskStatus.TODO,
+    },
+    {
+      title: "Define evaluation metrics",
+      description: "Backlog item for later in the semester.",
+      status: TaskStatus.BACKLOG,
+    },
+  ];
+
+  for (const task of demoTasks) {
+    const exists = await prisma.task.findFirst({
+      where: { projectId: project.id, title: task.title },
     });
+    if (!exists) {
+      await prisma.task.create({
+        data: {
+          ...task,
+          projectId: project.id,
+          assigneeId: student.id,
+          priority: TaskPriority.MEDIUM,
+        },
+      });
+    }
   }
 }
 

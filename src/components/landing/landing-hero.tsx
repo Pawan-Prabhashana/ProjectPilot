@@ -1,4 +1,4 @@
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
 import {
   Card,
   CardContent,
@@ -33,10 +33,19 @@ export function LandingHero() {
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
         {siteConfig.description}
       </p>
-      <div className="mt-8">
-        <Button size="lg" type="button">
-          Log in
-        </Button>
+      <div className="mt-8 flex flex-wrap gap-3">
+        <Link
+          href="/student"
+          className="inline-flex h-11 items-center justify-center rounded-md bg-primary px-8 text-sm font-medium text-primary-foreground hover:opacity-90"
+        >
+          Open student deck
+        </Link>
+        <Link
+          href="/supervisor"
+          className="inline-flex h-11 items-center justify-center rounded-md border border-input bg-background px-8 text-sm font-medium hover:bg-muted"
+        >
+          Open supervisor deck
+        </Link>
       </div>
 
       <div className="mt-14 grid gap-4 sm:grid-cols-2">
