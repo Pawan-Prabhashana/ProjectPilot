@@ -1,8 +1,9 @@
-import type { Role } from "@prisma/client";
+import type { Role, TaskPriority, TaskStatus } from "@prisma/client";
 
 export type UserId = string;
 export type TeamId = string;
 export type ProjectId = string;
+export type TaskId = string;
 
 export interface UserSummary {
   id: UserId;
@@ -51,4 +52,37 @@ export interface CreateProjectInput {
 export interface AddTeamMemberInput {
   userId: UserId;
   teamId: TeamId;
+}
+
+export interface TaskRecord {
+  id: TaskId;
+  title: string;
+  description: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  dueDate: Date | null;
+  projectId: ProjectId;
+  assigneeId: UserId | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CreateTaskInput {
+  title: string;
+  description: string;
+  projectId: ProjectId;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  dueDate?: Date | null;
+  assigneeId?: UserId | null;
+}
+
+export interface UpdateTaskInput {
+  title?: string;
+  description?: string;
+  status?: TaskStatus;
+  priority?: TaskPriority;
+  dueDate?: Date | null;
+  projectId?: ProjectId;
+  assigneeId?: UserId | null;
 }
