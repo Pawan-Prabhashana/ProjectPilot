@@ -1,10 +1,10 @@
-import { prisma } from "@/lib/db";
+import { prisma } from '@/lib/db';
 import type {
   CreateTeamInput,
   TeamId,
   TeamSummary,
   UserId,
-} from "@/lib/types/domain";
+} from '@/lib/types/domain';
 
 export async function findTeamById(id: TeamId): Promise<TeamSummary | null> {
   return prisma.team.findUnique({
@@ -13,13 +13,18 @@ export async function findTeamById(id: TeamId): Promise<TeamSummary | null> {
   });
 }
 
-export async function listTeamsForSupervisor(
-  supervisorId: UserId,
-): Promise<TeamSummary[]> {
+export async function listTeamsForSupervisor(supervisorId: UserId): Promise<TeamSummary[]> {
   return prisma.team.findMany({
     where: { supervisorId },
     select: { id: true, name: true, supervisorId: true },
-    orderBy: { name: "asc" },
+    orderBy: { name: 'asc' },
+  });
+}
+
+export async function listTeams(): Promise<TeamSummary[]> {
+  return prisma.team.findMany({
+    select: { id: true, name: true, supervisorId: true },
+    orderBy: { name: 'asc' },
   });
 }
 

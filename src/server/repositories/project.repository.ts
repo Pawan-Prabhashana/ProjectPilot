@@ -25,6 +25,13 @@ export async function listProjectsForTeam(
   });
 }
 
+export async function listProjects(): Promise<ProjectSummary[]> {
+  return prisma.project.findMany({
+    select: { id: true, title: true, description: true, teamId: true },
+    orderBy: { createdAt: 'desc' },
+  });
+}
+
 export async function createProject(
   input: CreateProjectInput,
 ): Promise<ProjectSummary> {

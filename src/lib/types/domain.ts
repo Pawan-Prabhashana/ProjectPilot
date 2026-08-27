@@ -86,3 +86,25 @@ export interface UpdateTaskInput {
   projectId?: ProjectId;
   assigneeId?: UserId | null;
 }
+
+export type TeamHealth = 'ON_TRACK' | 'AT_RISK' | 'CRITICAL';
+
+export interface SupervisorTeamRow {
+  id: string;
+  name: string;
+  projectTitle: string;
+  health: TeamHealth;
+}
+
+export interface SupervisorOverviewStats {
+  totalTeams: number;
+  totalProjects: number;
+  atRiskProjects: number;
+}
+
+export interface StudentWorkspace {
+  studentId: string;
+  studentName: string;
+  projectId: string;
+  projectTitle: string;
+}
