@@ -1,8 +1,10 @@
 # ProjectPilot
 
-Year-long university group project management for **students** (sprint execution) and **supervisors** (team oversight), with an optional AI intelligence layer.
+Year-long university group project management for **students** who execute the work and **supervisors** who oversee teams.
 
-ProjectPilot is a Next.js App Router app with a strict `src/` layout: UI in `src/components`, business rules in `src/server/services`, database access in `src/server/repositories`, and AI in `src/server/ai`.
+ProjectPilot keeps capstone teams on track from kickoff to delivery: shared projects and tasks, student sprint boards, supervisor oversight, and an optional AI intelligence layer for team risk and weekly sprint reports.
+
+The app runs on **http://localhost:3000**.
 
 ---
 
@@ -13,8 +15,7 @@ git clone https://github.com/Pawan-Prabhashana/ProjectPilot.git
 cd ProjectPilot
 
 cp .env.example .env
-# Set DATABASE_URL (PostgreSQL)
-# Optional: OPENAI_API_KEY for live team-risk and sprint reports
+# Set DATABASE_URL (PostgreSQL). Optionally set OPENAI_API_KEY for live AI.
 
 npm install
 npx prisma db push
@@ -22,78 +23,91 @@ npx prisma db seed
 npm run dev
 ```
 
-App: [http://localhost:3000](http://localhost:3000)
+Open:
 
-| Surface | URL |
-|---------|-----|
-| Landing | http://localhost:3000 |
-| Student sprint board | http://localhost:3000/student |
-| Supervisor deck | http://localhost:3000/supervisor |
+- Landing: http://localhost:3000
+- Student sprint: http://localhost:3000/student
+- Supervisor deck: http://localhost:3000/supervisor
+
+Do not run `npm run build` in another terminal while `npm run dev` is running.
 
 ---
 
 ## Demo accounts (after seed)
 
-Password for all: `demo1234`
+Password for all accounts: `demo1234`
 
-| Role | Email |
-|------|--------|
+| Role       | Email                 |
+|------------|-----------------------|
 | Supervisor | `supervisor@demo.com` |
-| Student | `student@demo.com` |
-| Student | `nisha@demo.com` |
-| Student | `ruvan@demo.com` |
+| Student    | `student@demo.com`    |
+| Student    | `nisha@demo.com`      |
+| Student    | `ruvan@demo.com`      |
 
-The seed creates **1 supervisor**, **3 students**, **1 team**, **1 project**, and **15 tasks** (done, in progress, overdue, backlog).
+`npx prisma db seed` **wipes** users, teams, projects, and tasks, then recreates this snapshot: 1 supervisor, 3 students, 1 team, 1 project, 15 tasks (done, in progress, overdue, backlog).
 
 ---
 
-## What is in this build
+## What you can do
 
-| Area | What you get |
-|------|------------|
-| **Student deck** | Active tasks vs backlog, create-task dialog (React Query + server actions) |
-| **Supervisor deck** | Overview stats, teams table, AI health badge + sprint report |
-| **Tasks** | Status, priority, due date, assignee must be on the project team |
-| **Intelligence** | `analyzeTeamRisk` (structured Zod JSON) and markdown sprint reports |
+### Students (`/student`)
 
-If `OPENAI_API_KEY` is not set, risk analysis and reports use a **deterministic fallback** so the dashboards still work.
+- See **My active tasks** and **Project backlog**
+- Create a task (assigned to the demo student on the seeded project)
+
+### Supervisors (`/supervisor`)
+
+- **Overview:** team, project, and overdue/at-risk counts
+- **Teams:** project assignment, **health badge** from the intelligence layer, and **Generate report**
+- Hover the health badge to read the analysis reasoning
+- Development **role switcher** in the top nav (Student / Supervisor)
+
+### Intelligence layer
+
+AI code lives in `src/server/ai/` only (not in UI components).
+
+| Function | Output |
+|----------|--------|
+| `analyzeTeamRisk(teamId)` | Structured `{ status, reasoning }` via Zod (`ON_TRACK` \| `AT_RISK` \| `CRITICAL`) |
+| `generateSprintReport(teamId)` | Markdown weekly summary for the supervisor |
+
+If `OPENAI_API_KEY` is **not** set, both features use a deterministic fallback so the dashboards still work.
 
 ---
 
 ## Stack
 
-- Next.js 14 (App Router) + TypeScript  
-- Tailwind CSS + Shadcn UI  
-- Prisma + PostgreSQL  
-- TanStack Query  
-- Vercel AI SDK (`generateObject` / `generateText`) with Zod schemas  
+| Layer        | Choice |
+|--------------|--------|
+| App          | Next.js 14 App Router (`src/app`) |
+| Language     | TypeScript (strict) |
+| UI           | Tailwind CSS + Shadcn UI |
+| Data         | Prisma + PostgreSQL |
+| Client state | TanStack Query |
+| Mutations    | Next.js Server Actions (`Result<T>`) |
+| AI           | Vercel AI SDK (`generateObject` / `generateText`) + OpenAI |
 
 ---
 
-## Useful scripts
-
-```bash
-npm run dev          # http://localhost:3000
-npm run build
-npm run lint
-npx prisma db push   # apply schema
-npx prisma db seed   # reset demo data (destructive)
-npx prisma studio
-```
-
----
-
-## Folder layout
+## Project structure
 
 ```
 src/
-  app/                 # routes, layouts, server actions
-  components/          # UI (landing, dashboards, Shadcn)
-  hooks/               # React Query hooks
+  app/
+    page.tsx                 # Landing
+    (dashboard)/
+      student/page.tsx      # Student sprint
+      supervisor/page.tsx   # Supervisor deck
+    actions/                 # Server Actions
+  components/                # UI only (layout, dashboards, Shadcn)
+  hooks/                     # React Query hooks
   server/
-    repositories/      # Prisma access
-    services/          # domain rules
-    ai/                # team risk + sprint reports
+    repositories/            # Prisma access
+    services/                # Business rules
+    ai/                      # Intelligence layer
+  lib/
+    db/                      # Prisma client
+    types/                   # Result<T> and domain types
 prisma/
   schema.prisma
   seed.ts
@@ -101,6 +115,25 @@ prisma/
 
 ---
 
-## Environment
+## Commands
 
-See `.env.example`. Required: `DATABASE_URL`. Optional: `OPENAI_API_KEY` for live OpenAI calls.
+```bash
+npm run dev          # Dev server — http://localhost:3000
+npm run build        # Production build
+npm run lint         # ESLint
+npx prisma db push   # Sync schema to Postgres
+npx prisma db seed   # Reset and load demo data
+npm run db:studio    # Prisma Studio
+```
+
+Optional in `.env`:
+
+```bash
+OPENAI_API_KEY=sk-...
+```
+
+---
+
+## Licence
+
+Private student project unless otherwise stated by the team.
